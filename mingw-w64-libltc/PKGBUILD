@@ -1,0 +1,31 @@
+# Maintainer: Tim Mayberry <mojofunk@gmail.com>
+
+_realname=libltc
+pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
+pkgver=1.1.4
+pkgrel=1
+pkgdesc="Linear/Logitudinal Time Code (LTC) Library (mingw-w64)"
+arch=('any')
+url="http://x42.github.io/libltc/"
+license=("LGPLv3+")
+makedepends=("${MINGW_PACKAGE_PREFIX}-gcc" "${MINGW_PACKAGE_PREFIX}-pkg-config")
+depends=("${MINGW_PACKAGE_PREFIX}-gcc-libs")
+options=('staticlibs') # '!strip' 'debug')
+source=("http://github.com/x42/libltc/releases/download/v${pkgver}/${_realname}-${pkgver}.tar.gz")
+md5sums=('34f7e716c8f0b041bf5f08b62162b1e3')
+
+build() {
+  mkdir -p "${srcdir}/build-${CARCH}"
+  cd "${srcdir}/build-${CARCH}"
+  ../${_realname}-${pkgver}/configure \
+    --prefix=${MINGW_PREFIX} \
+    --build=${MINGW_CHOST} \
+    --host=${MINGW_CHOST} \
+    --target=${MINGW_CHOST} \
+  make
+}
+
+package() {
+  cd "${srcdir}/build-${CARCH}"
+  make DESTDIR="$pkgdir" install
+}
