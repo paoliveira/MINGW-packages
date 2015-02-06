@@ -1,0 +1,45 @@
+# Maintainer: Tim Mayberry <mojofunk@gmail.com>
+
+_realname=rubberband
+pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
+pkgver=1.8.1
+pkgrel=1
+pkgdesc="Rubberband library (mingw-w64)"
+arch=('any')
+url="http://www.breakfastquay.com/rubberband/"
+license=("BSD")
+makedepends=("${MINGW_PACKAGE_PREFIX}-gcc"
+             "${MINGW_PACKAGE_PREFIX}-pkg-config"
+             'python3')
+depends=("${MINGW_PACKAGE_PREFIX}-gcc-libs"
+         "${MINGW_PACKAGE_PREFIX}-libsamplerate"
+         "${MINGW_PACKAGE_PREFIX}-vamp-plugin-sdk"
+         "${MINGW_PACKAGE_PREFIX}-fftw")
+options=('staticlibs') # '!strip' 'debug')
+source=("http://code.breakfastquay.com/attachments/download/34/${_realname}-${pkgver}.tar.bz2"
+        "${_realname}-waf"
+        "${_realname}-wscript") 
+md5sums=('6c2b4e18a714bcc297d0db81a10f9348'
+         '6b0300b983d4e63d92193697cc6a022f'
+         '402dc5fdf55a7b76b42538a4ed0477b7')
+
+prepare() {
+  cp ${_realname}-waf "$srcdir/${_realname}-${pkgver}"/waf 
+  cp ${_realname}-wscript "$srcdir/${_realname}-${pkgver}"/wscript 
+  cd "$srcdir/${_realname}-${pkgver}"
+}
+
+build() {
+  cd "${srcdir}/${_realname}-${pkgver}"
+
+  export PKG_CONFIG_PATH=${MINGW_PREFIX}/lib/pkgconfig
+  export PKGCONFIG=/usr/bin/pkg-config.exe
+  /usr/bin/python3 ./waf configure --prefix=${MINGW_PREFIX}
+  /usr/bin/python3 ./waf build
+}
+
+package() {
+  cd "${srcdir}/${_realname}-${pkgver}"
+  /usr/bin/python3 ./waf --destdir="${pkgdir}" install
+  mv "${pkgdir}/${MINGW_PREFIX}/bin/"*dll.a "${pkgdir}/${MINGW_PREFIX}/lib"
+}
