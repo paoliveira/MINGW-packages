@@ -1,0 +1,31 @@
+# Maintainer: Tim Mayberry <mojofunk@gmail.com>
+
+_realname=liblo
+pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
+pkgver=0.27
+pkgrel=1
+pkgdesc="Open Sound Control Library (mingw-w64)"
+arch=('any')
+url="http://liblo.sourceforge.net"
+license=("LGPLv2+")
+makedepends=("${MINGW_PACKAGE_PREFIX}-gcc" "${MINGW_PACKAGE_PREFIX}-pkg-config")
+depends=("${MINGW_PACKAGE_PREFIX}-gcc-libs")
+options=('staticlibs') # '!strip' 'debug')
+source=("http://downloads.sourceforge.net/project/liblo/liblo/${pkgver}/${_realname}-${pkgver}.tar.gz")
+md5sums=('e4317bab5b16003df350adfe2c181364')
+
+build() {
+  mkdir -p "${srcdir}/build-${CARCH}"
+  cd "${srcdir}/build-${CARCH}"
+  ../${_realname}-${pkgver}/configure \
+    --prefix=${MINGW_PREFIX} \
+    --build=${MINGW_CHOST} \
+    --host=${MINGW_CHOST} \
+    --target=${MINGW_CHOST} \
+  make
+}
+
+package() {
+  cd "${srcdir}/build-${CARCH}"
+  make DESTDIR="$pkgdir" install
+}
