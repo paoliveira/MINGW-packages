@@ -1,0 +1,46 @@
+# Maintainer: Tim Mayberry <mojofunk@gmail.com>
+
+_realname=vamp-plugin-sdk
+pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
+pkgver=2.5
+pkgrel=1
+pkgdesc="Vamp plugin SDK (mingw-w64)"
+arch=('any')
+url="http://www.vamp-plugins.org"
+license=("BSD")
+makedepends=("${MINGW_PACKAGE_PREFIX}-gcc"
+             "${MINGW_PACKAGE_PREFIX}-pkg-config"
+             'python3')
+depends=("${MINGW_PACKAGE_PREFIX}-gcc-libs"
+         "${MINGW_PACKAGE_PREFIX}-fftw")
+options=('staticlibs') # '!strip' 'debug')
+source=("http://code.soundsoftware.ac.uk/attachments/download/690/${_realname}-${pkgver}.tar.gz"
+       "${_realname}-${pkgver}-pkgconfig.patch"
+       "${_realname}-${pkgver}-waf"
+       "${_realname}-${pkgver}-wscript") 
+md5sums=('199872997f74951f6769b982bf0d0646'
+         'e6d3df4f43d2471e074b571272917bf9'
+         '6b0300b983d4e63d92193697cc6a022f'
+         '83b70e6650e69177846c052b37ba554c')
+
+prepare() {
+  cp ${_realname}-${pkgver}-waf "$srcdir/${_realname}-${pkgver}"/waf 
+  cp ${_realname}-${pkgver}-wscript "$srcdir/${_realname}-${pkgver}"/wscript 
+  cd "$srcdir/${_realname}-${pkgver}"
+  patch -Np1 -i "${srcdir}/${_realname}-${pkgver}-pkgconfig.patch"
+}
+
+build() {
+  cd "${srcdir}/${_realname}-${pkgver}"
+
+  export PKG_CONFIG_PATH=${MINGW_PREFIX}/lib/pkgconfig
+  export PKGCONFIG=/usr/bin/pkg-config.exe
+  /usr/bin/python3 ./waf configure --prefix=${MINGW_PREFIX}
+  /usr/bin/python3 ./waf build
+}
+
+package() {
+  cd "${srcdir}/${_realname}-${pkgver}"
+  /usr/bin/python3 ./waf --destdir="${pkgdir}" install
+  mv "${pkgdir}/${MINGW_PREFIX}/bin/"*dll.a "${pkgdir}/${MINGW_PREFIX}/lib"
+}
