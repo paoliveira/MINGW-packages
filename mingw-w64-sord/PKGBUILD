@@ -1,0 +1,31 @@
+# Maintainer: Tim Mayberry <mojofunk@gmail.com>
+
+_realname=sord
+pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
+pkgver=0.12.2
+pkgrel=1
+pkgdesc="A lightweight C library for storing RDF data in memory"
+arch=('any')
+url="http://drobilla.net/software/sord/"
+license=('custom:ISC')
+depends=("${MINGW_PACKAGE_PREFIX}-serd")
+makedepends=("${MINGW_PACKAGE_PREFIX}-gcc"
+             "${MINGW_PACKAGE_PREFIX}-pkg-config"
+             'python3')
+source=("http://download.drobilla.net/${_realname}-${pkgver}.tar.bz2")
+md5sums=('55d5866650b92ab64eda08fcc73aa425')
+
+build() {
+  cd "${srcdir}/${_realname}-${pkgver}"
+
+  export PKG_CONFIG_PATH=${MINGW_PREFIX}/lib/pkgconfig
+  export PKGCONFIG=/usr/bin/pkg-config.exe
+  /usr/bin/python3 ./waf configure --prefix=${MINGW_PREFIX}
+  /usr/bin/python3 ./waf -v
+}
+
+package() {
+  cd "${srcdir}/${_realname}-${pkgver}"
+  /usr/bin/python3 ./waf -v install --destdir=${pkgdir}
+  mv "${pkgdir}/${MINGW_PREFIX}/lib/"*dll "${pkgdir}/${MINGW_PREFIX}/bin"
+}
