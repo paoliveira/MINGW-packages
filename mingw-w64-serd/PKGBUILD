@@ -1,0 +1,28 @@
+_realname=serd
+pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
+pkgver=0.20.0
+pkgrel=1
+pkgdesc="A lightweight C library for RDF syntax which supports reading and writing Turtle and NTriples."
+arch=('any')
+url="http://drobilla.net/software/$pkgname/"
+license=('custom:ISC')
+depends=("${MINGW_PACKAGE_PREFIX}-gcc-libs")
+makedepends=("${MINGW_PACKAGE_PREFIX}-gcc"
+             "${MINGW_PACKAGE_PREFIX}-pkg-config"
+             'python3')
+options=('staticlibs') # '!strip' 'debug')
+source=("http://download.drobilla.net/${_realname}-${pkgver}.tar.bz2")
+md5sums=('cea0f240a6c94f3a7644a35d2f60ed8c')
+
+build() {
+  cd "${srcdir}/${_realname}-${pkgver}"
+
+  /usr/bin/python3 ./waf configure --prefix=${MINGW_PREFIX}
+  /usr/bin/python3 ./waf -v
+}
+
+package() {
+  cd "${srcdir}/${_realname}-${pkgver}"
+  /usr/bin/python3 ./waf -v install --destdir=${pkgdir}
+  mv "${pkgdir}/${MINGW_PREFIX}/lib/"*dll "${pkgdir}/${MINGW_PREFIX}/bin"
+}
