@@ -1,0 +1,33 @@
+# Maintainer: Tim Mayberry <mojofunk@gmail.com>
+
+_realname=sratom
+pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
+pkgver=0.4.6
+pkgrel=1
+pkgdesc="An LV2 Atom RDF serialisation library"
+url="http://drobilla.net/software/sratom/"
+license=('custom:ISC')
+arch=('any')
+makedepends=("${MINGW_PACKAGE_PREFIX}-gcc"
+             "${MINGW_PACKAGE_PREFIX}-pkg-config"
+             'python3')
+depends=("${MINGW_PACKAGE_PREFIX}-lv2>=1.10.0"
+         "${MINGW_PACKAGE_PREFIX}-sord>=0.12.2")
+source=("http://download.drobilla.net/${_realname}-${pkgver}.tar.bz2")
+md5sums=('5cf28520418779bf41fb14a40fbb20ad')
+
+build() {
+  cd "${srcdir}/${_realname}-${pkgver}"
+
+  export PKG_CONFIG_PATH=${MINGW_PREFIX}/lib/pkgconfig
+  export PKGCONFIG=/usr/bin/pkg-config.exe
+  /usr/bin/python3 ./waf configure --prefix=${MINGW_PREFIX}
+  /usr/bin/python3 ./waf -v
+}
+
+package() {
+  cd "${srcdir}/${_realname}-${pkgver}"
+  /usr/bin/python3 ./waf -v install --destdir=${pkgdir}
+  mkdir -p "${pkgdir}/${MINGW_PREFIX}/bin"
+  mv "${pkgdir}/${MINGW_PREFIX}/lib/"*dll "${pkgdir}/${MINGW_PREFIX}/bin"
+}
