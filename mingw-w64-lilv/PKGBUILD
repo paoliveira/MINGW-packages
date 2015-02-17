@@ -1,0 +1,42 @@
+# Maintainer: Tim Mayberry <mojofunk@gmail.com>
+
+_realname=lilv
+pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
+pkgver=0.20.0
+pkgrel=1
+pkgdesc="A C library interface to the LV2 plug-in standard"
+arch=('any')
+url="http://drobilla.net/software/lilv/"
+license=('custom:ISC')
+makedepends=("${MINGW_PACKAGE_PREFIX}-gcc"
+             "${MINGW_PACKAGE_PREFIX}-pkg-config"
+             'python3')
+depends=("${MINGW_PACKAGE_PREFIX}-sratom>=0.4.6") # 'jack')
+#optdepends=('bash-completion')
+source=("http://download.drobilla.net/${_realname}-${pkgver}.tar.bz2"
+        "mingw-lilv-wscript.patch"
+        "mingw-lilv-pkgconfig.patch")
+md5sums=('f88419fa70cc96dfdc7e0bf3cd09b180'
+         'a959fd00504c46257978d7624195483c'
+         'e84d88d3ec898a2e84c3bfc9dfe19a73')
+
+prepare() {
+  cd "$srcdir/${_realname}-${pkgver}"
+  patch -Np1 -i "${srcdir}/mingw-lilv-wscript.patch"
+  patch -Np1 -i "${srcdir}/mingw-lilv-pkgconfig.patch"
+}
+
+build() {
+  cd "${srcdir}/${_realname}-${pkgver}"
+
+  export PKG_CONFIG_PATH=${MINGW_PREFIX}/lib/pkgconfig
+  export PKGCONFIG=/usr/bin/pkg-config.exe
+  /usr/bin/python3 ./waf configure --prefix=${MINGW_PREFIX} --no-bash-completion
+  /usr/bin/python3 ./waf -v
+}
+
+package() {
+  cd "${srcdir}/${_realname}-${pkgver}"
+  /usr/bin/python3 ./waf -v install --destdir=${pkgdir}
+  mv "${pkgdir}/${MINGW_PREFIX}/lib/"*dll "${pkgdir}/${MINGW_PREFIX}/bin"
+}
