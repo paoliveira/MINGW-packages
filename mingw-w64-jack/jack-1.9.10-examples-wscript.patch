@@ -1,0 +1,11 @@
+--- example-clients/wscript.orig	2015-02-19 14:20:30.129668500 +1000
++++ example-clients/wscript	2015-02-19 14:20:48.996903700 +1000
+@@ -107,6 +107,8 @@
+             prog.use += ['RT', 'READLINE']
+         if bld.env['IS_MACOSX']:
+             prog.use += ['READLINE']
++        if bld.env['IS_WINDOWS']:
++            prog.use += ['READLINE']
+         prog.target = 'jack_transport'
+ 
+     if bld.env['BUILD_EXAMPLE_CLIENT_REC']:

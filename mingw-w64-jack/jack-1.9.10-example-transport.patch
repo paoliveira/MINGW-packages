@@ -1,0 +1,15 @@
+--- example-clients/transport.c.orig	2015-02-19 14:02:18.783096700 +1000
++++ example-clients/transport.c	2015-02-19 14:03:11.199592700 +1000
+@@ -459,9 +459,11 @@
+ 		return 1;
+ 	}
+ 
++#ifndef WIN32
+ 	signal(SIGQUIT, signal_handler);
+-	signal(SIGTERM, signal_handler);
+ 	signal(SIGHUP, signal_handler);
++#endif
++	signal(SIGTERM, signal_handler);
+ 	signal(SIGINT, signal_handler);
+ 
+ 	jack_on_shutdown(client, jack_shutdown, 0);

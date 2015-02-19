@@ -1,0 +1,47 @@
+# Maintainer: Tim Mayberry <mojofunk@gmail.com>
+
+_realname=jack
+pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
+pkgver=1.9.10
+pkgrel=1
+pkgdesc="Rubberband library (mingw-w64)"
+arch=('any')
+url="http://jackaudio.org"
+license=("GPL")
+makedepends=("${MINGW_PACKAGE_PREFIX}-gcc"
+             "${MINGW_PACKAGE_PREFIX}-pkg-config"
+             'python3')
+depends=("${MINGW_PACKAGE_PREFIX}-gcc-libs"
+         "${MINGW_PACKAGE_PREFIX}-libsamplerate"
+         "${MINGW_PACKAGE_PREFIX}-portaudio")
+options=('staticlibs') # '!strip' 'debug')
+source=("https://dl.dropboxusercontent.com/u/28869550/${_realname}-${pkgver}.tar.bz2"
+        "${_realname}-${pkgver}-examples-wscript.patch"
+        "${_realname}-${pkgver}-example-transport.patch")
+md5sums=('4aeb91d7ae0cabce98355436ed4f217a'
+		 '446afaaf7c1761bce61c2fa45d1b564b'
+         '91f3fbf180fc8b1372b19d75a0ce0ebf')
+
+prepare() {
+  cd "$srcdir/${_realname}-${pkgver}"
+  patch -Np0 -i "${srcdir}/${_realname}-${pkgver}-examples-wscript.patch"
+  patch -Np0 -i "${srcdir}/${_realname}-${pkgver}-example-transport.patch"
+}
+
+build() {
+  cd "${srcdir}/${_realname}-${pkgver}"
+
+  export PKG_CONFIG_PATH=${MINGW_PREFIX}/lib/pkgconfig
+  export PKGCONFIG=/usr/bin/pkg-config.exe
+  /usr/bin/python3 ./waf configure --prefix=${MINGW_PREFIX} \
+                         --dist-target=mingw --portaudio --winmme
+  /usr/bin/python3 ./waf build
+}
+
+package() {
+  cd "${srcdir}/${_realname}-${pkgver}"
+  /usr/bin/python3 ./waf --destdir="${pkgdir}" install
+  # jack2 creates an import lib with same name as portaudio
+  # this should be fixed at some point in jack2 build
+  rm "${pkgdir}/${MINGW_PREFIX}/lib/"*portaudio*dll.a
+}
