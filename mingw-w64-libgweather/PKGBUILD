@@ -1,8 +1,9 @@
 # Maintainer: Andrea Zagli <andrea.zagli.free@gmail.com>
 
 _realname=libgweather
+pkgbase=mingw-w64-${_realname}
 pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
-pkgver=3.14.2
+pkgver=3.28.2
 pkgrel=1
 arch=('any')
 pkgdesc="GWeather shared library (mingw-w64)"
@@ -12,44 +13,51 @@ depends=("${MINGW_PACKAGE_PREFIX}-gtk3"
          "${MINGW_PACKAGE_PREFIX}-libxml2"
          "${MINGW_PACKAGE_PREFIX}-geocode-glib")
 makedepends=("${MINGW_PACKAGE_PREFIX}-gcc"
-             "${MINGW_PACKAGE_PREFIX}-gtk-doc"
-             "${MINGW_PACKAGE_PREFIX}-vala"
-             "${MINGW_PACKAGE_PREFIX}-gobject-introspection"
              "${MINGW_PACKAGE_PREFIX}-glade"
+             "${MINGW_PACKAGE_PREFIX}-gobject-introspection"
+             "${MINGW_PACKAGE_PREFIX}-meson"
+             "${MINGW_PACKAGE_PREFIX}-ninja"
+             "${MINGW_PACKAGE_PREFIX}-vala"
+             "gtk-doc"
              "intltool")
 options=('strip' 'staticlibs')
 license=("LGPL 2.1")
-url="http://www.gnome.org/"
-source=(http://ftp.gnome.org/pub/gnome/sources/${_realname}/${pkgver%.*}/${_realname}-$pkgver.tar.xz
+url="https://www.gnome.org/"
+install=${_realname}-${CARCH}.install
+source=(https://download.gnome.org/sources/${_realname}/${pkgver%.*}/${_realname}-${pkgver}.tar.xz
         001-win.patch
-        002-localedir-fix.patch)
-sha256sums=('aa0d03132fc6c446cf549df1d91e319e1abcc676f1d9f8bc1dc01f033dcff493'
-            '54aafa1ec47f818855cb8d17bb4f7f4458505a54b08c9fc51bfd4bbc1d6c37a2'
-            '6677acc97b0322170339479df46435f14eb232df2d36e607029af3bd1f1a4eb0')
+        002-relocation.patch
+        003-meson.patch)
+sha256sums=('081ce81653afc614e12641c97a8dd9577c524528c63772407ae2dbcde12bde75'
+            'e423f33c074640dd2ce074859102782438961d21d8f8fc6fe88833196b1f7212'
+            'b92f0f98613430dc4037925921dec6fed184ea6ae6d6db076297aaec969de6fc'
+            'c1593cab978cbe01f4ed033c6ae8f8f19193e7583fa03b95734582f4fab8cdbb')
+noextract=(${_realname}-${pkgver}.tar.xz)
 
 prepare() {
+  [[ -d ${srcdir}/${_realname}-${pkgver} ]] && rm -rf ${srcdir}/${_realname}-${pkgver}
+  tar -xJf ${srcdir}/${_realname}-${pkgver}.tar.xz -C ${srcdir} 2>/dev/null || true
+
   cd ${_realname}-${pkgver}
   patch -p1 -i ${srcdir}/001-win.patch
-  patch -p1 -i ${srcdir}/002-localedir-fix.patch
-
-  AUTOPOINT='intltoolize --automake --copy' autoreconf -fiv
+  patch -p1 -i ${srcdir}/002-relocation.patch
+  patch -p1 -i ${srcdir}/003-meson.patch
 }
 
 build() {
-  mkdir -p build-${MINGW_CHOST}
-  cd build-${MINGW_CHOST}
+  [[ -d build-${MINGW_CHOST} ]] && rm -rf build-${MINGW_CHOST}
+  mkdir -p build-${MINGW_CHOST} && cd build-${MINGW_CHOST}
 
-  ../${_realname}-${pkgver}/configure \
-    --host=${MINGW_CHOST} \
-    --target=${MINGW_CHOST} \
-    --build=${MINGW_CHOST} \
-    --prefix=${MINGW_PREFIX} \
-    --libexecdir=${MINGW_PREFIX}/lib \
-    --enable-introspection
-  make
+  ${MINGW_PREFIX}/bin/meson \
+    --buildtype=plain \
+    ../${_realname}-${pkgver}
+
+  ${MINGW_PREFIX}/bin/ninja
 }
 
 package() {
-  cd "$srcdir/build-${MINGW_CHOST}"
-  make DESTDIR=$pkgdir install
+  cd "${srcdir}/build-${MINGW_CHOST}"
+  DESTDIR="${pkgdir}${MINGW_PREFIX}" ${MINGW_PREFIX}/bin/ninja install
+
+  install -Dm644 "${srcdir}/${_realname}-${pkgver}/COPYING" "${pkgdir}${MINGW_PREFIX}/share/licenses/${_realname}/COPYING"
 }

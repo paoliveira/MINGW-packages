@@ -1,8 +1,9 @@
 # Maintainer: Alexey Pavlov <alexpux@gmail.com>
 
 _realname=gedit
+pkgbase=mingw-w64-${_realname}
 pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
-pkgver=3.14.2
+pkgver=3.30.2
 pkgrel=1
 arch=('any')
 pkgdesc="A text editor for GNOME (mingw-w64)"
@@ -12,32 +13,41 @@ depends=("${MINGW_PACKAGE_PREFIX}-adwaita-icon-theme"
          "${MINGW_PACKAGE_PREFIX}-gtksourceview3"
          "${MINGW_PACKAGE_PREFIX}-iso-codes"
          "${MINGW_PACKAGE_PREFIX}-libpeas"
-         "${MINGW_PACKAGE_PREFIX}-python3-gobject")
+         "${MINGW_PACKAGE_PREFIX}-python3-gobject"
+         "${MINGW_PACKAGE_PREFIX}-gspell")
 makedepends=("${MINGW_PACKAGE_PREFIX}-gcc"
              "${MINGW_PACKAGE_PREFIX}-pkg-config"
              "${MINGW_PACKAGE_PREFIX}-python3"
              "${MINGW_PACKAGE_PREFIX}-vala"
+             "${MINGW_PACKAGE_PREFIX}-gobject-introspection"
+             "${MINGW_PACKAGE_PREFIX}-gnome-common"
+             "${MINGW_PACKAGE_PREFIX}-gtk-doc"
              "intltool"
              "itstool"
              "gettext-devel"
              "yelp-tools")
 options=('strip' 'staticlibs')
 license=("GPL")
-url="http://www.gnome.org"
-install=gedit-${CARCH}.install
-source=(http://ftp.gnome.org/pub/gnome/sources/${_realname}/${pkgver%.*}/${_realname}-$pkgver.tar.xz)
-sha256sums=('e5174147180721485c4c3791628bfdc8452efbed120c6b6b2e4210299caf71c0')
+url="https://www.gnome.org"
+install=${_realname}-${CARCH}.install
+source=(https://download.gnome.org/sources/${_realname}/${pkgver%.*}/${_realname}-${pkgver}.tar.xz
+        'autogen.sh::https://git.gnome.org/browse/gedit/plain/autogen.sh?id=f4a2fb948b38beb7fd7491788f1c80eeed99db6c')
+sha256sums=('eaf3b17856a0fb7c6f363c2ebbf4f26c5be6eb6552a49e58c44aee0fcb789163'
+            '62fb5cd2726160dbc40b8de345a7e2d68a921da6eb4b8103c40fbd5d9e317483')
 
 prepare() {
   cd "${srcdir}"/${_realname}-${pkgver}
-  #autopoint --force
-  AUTOPOINT='intltoolize --automake --copy' autoreconf -f -i
+
+  cp "${srcdir}"/autogen.sh .
+  NOCONFIGURE=1 ./autogen.sh
 }
 
 build() {
+  [[ -d build-${MINGW_CHOST} ]] && rm -rf build-${MINGW_CHOST}
   mkdir -p build-${MINGW_CHOST}
   cd build-${MINGW_CHOST}
 
+  export MSYS2_ARG_CONV_EXCL="</"
   export PYTHON=${MINGW_PREFIX}/bin/python3
   ../${_realname}-${pkgver}/configure \
     --host=${MINGW_CHOST} \
@@ -52,6 +62,8 @@ build() {
 }
 
 package() {
-  cd "$srcdir/build-${MINGW_CHOST}"
-  make DESTDIR=$pkgdir install
+  cd "${srcdir}/build-${MINGW_CHOST}"
+  make DESTDIR=${pkgdir} install
+
+  install -Dm644 "${srcdir}/${_realname}-${pkgver}/COPYING" "${pkgdir}${MINGW_PREFIX}/share/licenses/${_realname}/COPYING"
 }

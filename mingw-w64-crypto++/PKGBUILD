@@ -1,48 +1,72 @@
 # Maintainer: Alexey Pavlov <Alexpux@gmail.com>
 
 _realname=crypto++
+pkgbase=mingw-w64-${_realname}
 pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
-pkgver=5.6.2
-pkgrel=2
-pkgdesc="Crypto++ Library is a free C++ class library of cryptographic schemes."
+pkgver=7.0.0
+pkgrel=1
+pkgdesc="Crypto++ Library is a free C++ class library of cryptographic schemes (mingw-w64)"
 arch=('any')
-url="http://www.cryptopp.com/"
+url="https://www.cryptopp.com/"
 license=('Boost Software License 1.0')
-options=('staticlibs' 'strip')
+options=('staticlibs' 'strip' 'emptydirs')
 depends=("${MINGW_PACKAGE_PREFIX}-gcc-libs")
-makedepends=("${MINGW_PACKAGE_PREFIX}-gcc")
-source=("http://www.cryptopp.com/cryptopp${pkgver//./}.zip"
+makedepends=("${MINGW_PACKAGE_PREFIX}-gcc" "${MINGW_PACKAGE_PREFIX}-cmake" "unzip")
+source=("https://www.cryptopp.com/cryptopp${pkgver//./}.zip"
+        #https://github.com/weidai11/cryptopp/archive/CRYPTOPP_${pkgver//./_}.tar.gz
         libcrypto++.pc
-        missing-sources.patch)
-md5sums=('7ed022585698df48e65ce9218f6c6a67'
-         '9aa03e5f77303f1c3685c796b17aa204'
-         'b27bcb0cc2938f5af6a07d724ce42b62')
+        cryptopp-5.6.5-cmake.patch
+        fix-test-linking.patch)
+sha256sums=('a4bc939910edd3d29fb819a6fc0dfdc293f686fa62326f61c56d72d0a366ceb0'
+            'baea2372d9f490fa79d0431cd4f8eea515501b5553c6b4ed4a1cbbf3879ca5f3'
+            '0486178005a7fe8a0659f59d3c4fafafa39d870f6e9f812bcf9131ce4758c914'
+            '99e5bb3ba211c6155a19a170b7e498b904bf821f7d2aa46be06d08a87846fa17')
+noextract=(cryptopp${pkgver//./}.zip)
 
 prepare() {
   cd ${srcdir}
+  unzip cryptopp${pkgver//./}.zip -d ${_realname}
+
+  cd ${_realname}
+  sed -i -e 's/^CXXFLAGS/#CXXFLAGS/' GNUmakefile
+  patch -p1 -i ${srcdir}/cryptopp-5.6.5-cmake.patch
+  patch -p1 -i ${srcdir}/fix-test-linking.patch
 }
 
 build() {
-  sed -i -e 's/^CXXFLAGS/#CXXFLAGS/' GNUmakefile
-  patch -p1 -i ${srcdir}/missing-sources.patch
-  make -f GNUMakefile
-  make cryptopp.dll
+  [[ -d ${srcdir}/build-${MINGW_CHOST} ]] && rm -rf ${srcdir}/build-${MINGW_CHOST}
+  mkdir ${srcdir}/build-${MINGW_CHOST}
+  cd ${srcdir}/build-${MINGW_CHOST}
+
+  MSYS2_ARG_CONV_EXCL="-DCMAKE_INSTALL_PREFIX=" \
+  ${MINGW_PREFIX}/bin/cmake \
+    -G"MSYS Makefiles" \
+    -DCMAKE_INSTALL_PREFIX=${MINGW_PREFIX} \
+    -DDISABLE_SSSE3=ON \
+    ../${_realname}
+
+  make
+}
+
+check() {
+  cd ${srcdir}/build-${MINGW_CHOST}
+
+  make test
 }
 
 package() {
-  cd ${srcdir}
+  cd ${srcdir}/build-${MINGW_CHOST}
+  make DESTDIR=${pkgdir} install
 
-  mkdir -p ${pkgdir}${MINGW_PREFIX}/include/cryptopp
-  cp *.h ${pkgdir}${MINGW_PREFIX}/include/cryptopp
+  # Install pkgconfig file
+  mkdir -p "${pkgdir}${MINGW_PREFIX}/lib/pkgconfig"
+  install -m644 "${srcdir}/libcrypto++.pc" "${pkgdir}/${MINGW_PREFIX}/lib/pkgconfig/libcrypto++.pc"
+  sed -s "s|/usr|${MINGW_PREFIX}|g" -i "${pkgdir}/${MINGW_PREFIX}/lib/pkgconfig/libcrypto++.pc"
 
-  mkdir -p ${pkgdir}${MINGW_PREFIX}/lib
+  # Remove cryptest.exe and test files, only needed for check() and bloats the package
+  # because cryptest.exe is linked statically.
+  rm "${pkgdir}/${MINGW_PREFIX}/bin/cryptest.exe"
+  rm -r "${pkgdir}/${MINGW_PREFIX}/share/cryptopp/"
 
-  install -d ${pkgdir}${MINGW_PREFIX}/{bin,lib/pkgconfig,include/cryptopp}
-  install -m644 *.h ${pkgdir}${MINGW_PREFIX}/include/cryptopp/
-  install -m644 cryptopp.dll "${pkgdir}${MINGW_PREFIX}/bin/cryptopp.dll"
-  install -m644 *.a "${pkgdir}${MINGW_PREFIX}/lib/"
-  install -m644 ${srcdir}/libcrypto++.pc "${pkgdir}${MINGW_PREFIX}/lib/pkgconfig/libcrypto++.pc"
-  install -D -m644 License.txt "${pkgdir}${MINGW_PREFIX}/share/licenses/${_realname}/LICENSE"
-
-  sed -e "s|/usr|${MINGW_PREFIX}|g" -i ${pkgdir}${MINGW_PREFIX}/lib/pkgconfig/libcrypto++.pc
+  install -D -m644 ${srcdir}/${_realname}/License.txt "${pkgdir}${MINGW_PREFIX}/share/licenses/${_realname}/LICENSE"
 }

@@ -1,45 +1,49 @@
---- src.orig/libEGL.gypi	2014-01-11 12:17:37.971020837 +0100
-+++ src/libEGL.gypi	2014-01-11 12:20:05.406870084 +0100
-@@ -13,6 +13,14 @@
-                     'target_name': 'libEGL',
-                     'type': 'shared_library',
-                     'dependencies': [ 'libGLESv2', 'commit_id' ],
-+                    'conditions': [
-+                        ['TARGET=="win32" and GENERATOR == "make"', {
-+                            'ldflags': [ '-Wl,--out-implib,libEGL.dll.a ../src/libEGL/libEGL_mingw32.def -Wl,--whole-archive -L. -lGLESv2 -ld3d9 -ldxguid -Wl,--no-whole-archive' ],
-+                        }],
-+                        ['TARGET=="win64" and GENERATOR == "make"', {
-+                            'ldflags': [ '-Wl,--out-implib,libEGL.dll.a ../src/libEGL/libEGL.def -Wl,--whole-archive -L. -lGLESv2 -ld3d9 -ldxguid -Wl,--no-whole-archive' ],
-+                        }],
-+                    ],
-                     'include_dirs':
-                     [
-                         '.',
---- src.orig/libGLESv2.gypi	2014-01-11 12:17:37.971020837 +0100
-+++ src/libGLESv2.gypi	2014-01-11 12:19:22.916166993 +0100
-@@ -23,6 +23,14 @@
-                     'target_name': 'libGLESv2',
-                     'type': 'shared_library',
-                     'dependencies': [ 'translator', 'commit_id', 'copy_compiler_dll' ],
-+                    'conditions': [
-+                        ['TARGET=="win32" and GENERATOR == "make"', {
-+                            'ldflags': [ '-Wl,--out-implib,libGLESv2.dll.a ../src/libGLESv2/libGLESv2_mingw32.def -Wl,--whole-archive -ld3d9 -ldxguid -Wl,--no-whole-archive' ],
-+                        }],
-+                        ['TARGET=="win64" and GENERATOR == "make"', {
-+                            'ldflags': [ '-Wl,--out-implib,libGLESv2.dll.a ../src/libGLESv2/libGLESv2.def -Wl,--whole-archive -ld3d9 -ldxguid -Wl,--no-whole-archive' ],
-+                        }],
-+                    ],
-                     'include_dirs':
-                     [
-                         '.',
---- src.orig/angle.gypi	2014-01-11 12:28:41.414124056 +0100
-+++ src/angle.gypi	2014-01-11 12:31:06.065777743 +0100
-@@ -38,7 +38,7 @@
-                                 'message': 'Copying D3D Compiler DLL...',
-                                 'inputs': [ 'copy_compiler_dll.bat' ],
-                                 'outputs': [ '<(PRODUCT_DIR)/D3DCompiler_46.dll' ],
--                                'action': ["<(angle_relative_src_path)/copy_compiler_dll.bat", "$(PlatformName)", "<(windows_sdk_path)", "<(PRODUCT_DIR)" ],
-+                                'action': ["touch", '<(PRODUCT_DIR)/D3DCompiler_46.dll' ],
-                             }
-                         ] #actions
+--- angleproject/src/libEGL.gypi.orig	2018-08-01 10:29:47.147896800 +0300
++++ angleproject/src/libEGL.gypi	2018-08-01 10:57:25.538059500 +0300
+@@ -52,7 +52,13 @@
+                         'DYLIB_INSTALL_NAME_BASE': '@rpath',
                      },
+                 }],
++                ['OS=="win"', {
++                    'ldflags': [ '-Wl,--out-implib,libEGL.dll.a ../src/libEGL/libEGL.def' ],
++                }],
+             ],
++            'libraries': [
++                '-ldxguid -ld3d9 -lgdi32 -lsetupapi'
++            ]
+         },
+ 
+         {
+--- angleproject/src/libGLESv2.gypi.orig	2018-08-01 10:29:47.600297600 +0300
++++ angleproject/src/libGLESv2.gypi	2018-08-01 10:56:24.218925200 +0300
+@@ -1298,7 +1298,7 @@
+         {
+             'target_name': 'libGLESv2',
+             'type': '<(angle_gl_library_type)',
+-            'dependencies': [ 'libANGLE', 'angle_common' ],
++            'dependencies': [ 'translator', 'libANGLE', 'angle_common' ],
+             'includes': [ '../gyp/common_defines.gypi', ],
+             'sources':
+             [
+@@ -1315,7 +1315,13 @@
+                 {
+                     'msvs_requires_importlibrary' : 'true',
+                 }],
++                ['OS=="win"', {
++                    'ldflags': [ '-Wl,--out-implib,libGLESv2.dll.a ../src/libGLESv2/libGLESv2_autogen.def' ],
++                }],
+             ],
++            'libraries': [
++                '-ldxguid -ld3d9 -lgdi32 -lsetupapi'
++            ]
+         },
+ 
+         {
+@@ -1367,6 +1373,7 @@
+                         'GL_APICALL=',
+                         'GL_API=',
+                     ],
++                    'ldflags': [ '-Wl,--out-implib,libGLESv1_CM.dll.a ../src/libGLESv1_CM/libGLESv1_CM.def' ],
+                 },
+                 {
+                     'defines':

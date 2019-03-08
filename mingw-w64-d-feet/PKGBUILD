@@ -2,8 +2,9 @@
 # Based on Arch Linux package maintained by : Balló György <ballogyor+arch at gmail dot com>
 
 _realname=d-feet
+pkgbase=mingw-w64-${_realname}
 pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
-pkgver=0.3.9
+pkgver=0.3.14
 pkgrel=1
 pkgdesc="D-Bus debugger for GNOME (mingw-w64)"
 arch=('any')
@@ -14,21 +15,20 @@ depends=("${MINGW_PACKAGE_PREFIX}-gtk3"
          "${MINGW_PACKAGE_PREFIX}-hicolor-icon-theme")
 makedepends=("${MINGW_PACKAGE_PREFIX}-python3-setuptools" "intltool" "itstool")
 install=d-feet-${CARCH}.install
-source=(http://ftp.gnome.org/pub/GNOME/sources/${_realname}/${pkgver%.*}/${_realname}-${pkgver}.tar.xz
-        localedir-fix.patch)
-sha256sums=('6df917fc1c2ef43217fbeea94dc12ecfc2d136cac4c84dac2c89f03dfbca7953'
-            'fc75a1e0fafac35a0c94a6c0fff6d0a28c7d5d6ac80ad4ca89399945feafb6c7')
+source=(https://download.gnome.org/sources/${_realname}/${pkgver%.*}/${_realname}-${pkgver}.tar.xz
+        001-hack-symlink-msys2.patch)
+sha256sums=('eedc20a97e7eee4cce9348a19565db8f5e0947abbf74e34f0711ca4279e414d5'
+            '1841481be4528497728822c9ae825b7d0acd065761f1e4f3d9dc89ea1721564d')
 
 prepare() {
   cd "${srcdir}/${_realname}-${pkgver}"
-  patch -p1 -i ${srcdir}/localedir-fix.patch
-  autoreconf -fi
+  patch -p1 -i ${srcdir}/001-hack-symlink-msys2.patch
+  autoreconf -fiv
 }
 
 build() {
-  [ -d "${srcdir}/build-${CARCH}" ] && rm -rf ${srcdir}/build-${CARCH}
-  mkdir -p ${srcdir}/build-${CARCH}
-  cd ${srcdir}/build-${CARCH}
+  [[ -d "${srcdir}/build-${CARCH}" ]] && rm -rf ${srcdir}/build-${CARCH}
+  mkdir -p ${srcdir}/build-${CARCH} && cd ${srcdir}/build-${CARCH}
 
   PYTHON=${MINGW_PREFIX}/bin/python3 \
   ../${_realname}-${pkgver}/configure \
@@ -47,5 +47,6 @@ check() {
 
 package() {
   cd "${srcdir}/build-${CARCH}"
-  make DESTDIR="$pkgdir" install
+  make DESTDIR="${pkgdir}" install
+  install -Dm0644 "${srcdir}/${_realname}-${pkgver}"/COPYING ${pkgdir}${MINGW_PREFIX}/share/licenses/${_realname}/COPYING
 }

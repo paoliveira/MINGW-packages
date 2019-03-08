@@ -1,13 +1,15 @@
 # Maintainer: Alexey Pavlov <alexpux@gmail.com>
 # Contributor: Ray Donnelly <mingw.android@gmail.com>
+# Contributor: Mateusz Mikula <mati865@gmail.com>
 
 _realname=binutils
+pkgbase=mingw-w64-${_realname}
 pkgname=("${MINGW_PACKAGE_PREFIX}-${_realname}")
-pkgver=2.25
-pkgrel=2
-pkgdesc="A set of programs to assemble and manipulate binary and object files"
+pkgver=2.30
+pkgrel=5
+pkgdesc="A set of programs to assemble and manipulate binary and object files (mingw-w64)"
 arch=('any')
-url="http://www.gnu.org/software/binutils/"
+url="https://www.gnu.org/software/binutils/"
 license=('GPL')
 groups=("${MINGW_PACKAGE_PREFIX}-toolchain")
 depends=("${MINGW_PACKAGE_PREFIX}-libiconv" "${MINGW_PACKAGE_PREFIX}-zlib")
@@ -15,52 +17,31 @@ depends=("${MINGW_PACKAGE_PREFIX}-libiconv" "${MINGW_PACKAGE_PREFIX}-zlib")
 makedepends=("${MINGW_PACKAGE_PREFIX}-libiconv" "${MINGW_PACKAGE_PREFIX}-zlib")
 options=('staticlibs' '!distcc' '!ccache') # 'debug' '!strip')
 #install=binutils.install
-source=(ftp://ftp.gnu.org/gnu/binutils/binutils-${pkgver}.tar.bz2{,.sig}
+source=(https://ftp.gnu.org/gnu/binutils/${_realname}-${pkgver}.tar.bz2{,.sig}
         0001-enable-gold-on.mingw32.patch
         0002-check-for-unusual-file-harder.patch
-        0003-enable-shared-bfd.all.patch
-        0003-link-to-libibtl-and-libiberty.mingw.patch
-        0004-libiberty-la.mingw.patch
-        0005-shared-opcodes.mingw.patch
-        0008-fix-libiberty-makefile.mingw.patch
-        0009-fix-libiberty-configure.mingw.patch
-        0013-dont-link-gas-to-libiberty.mingw.patch
-        0014-dont-link-binutils-to-libiberty.mingw.patch
-        0015-dont-link-ld-to-libiberty.mingw.patch
-        0017-fix-iconv-linking.all.patch
-        0110-binutils-mingw-gnu-print.patch)
-md5sums=('d9f3303f802a5b6b0bb73a335ab89d66'
-         'SKIP'
-         'f3be04ed70b9d352a2c0e2a80b0706b2'
-         '2cc89a3c09cafa30c91ac890d3c68932'
-         'b3580923675b22a78a66788fd70b99b9'
-         '700066e478edd9bbb82c9d967bf90a4a'
-         'a91bbb38f462c26247f317e4004a99fd'
-         'bcd56ce925ca7f85e30b42c28af539d1'
-         'df13a2462c24d14376a09ec1d1609519'
-         '9cd71d49b765932a9701b66dfde00775'
-         '1d439afee5cbcc952719ae40021e6cec'
-         '6d3610000f041f66ada0a956101faeec'
-         '33b5eda35272e88b1c308e66484db958'
-         '66eeb2af697f5f1d0f372185aa2fb737'
-         '1c34f5ee0ee5d5008a617e1638362d43')
+        0010-bfd-Increase-_bfd_coff_max_nscns-to-65279.patch
+        0110-binutils-mingw-gnu-print.patch
+        0200-remove-provide-qualifiers.patch)
+sha256sums=('efeade848067e9a03f1918b1da0d37aaffa0b0127a06b5e9236229851d9d0c09'
+            'SKIP'
+            '93296b909e1a4f9d8a4bbe2437aafa17ca565ef6642a9812b0360c05be228c9d'
+            '2c99345fc575c3a060d6677537f636c6c4154fac0fde508070f3b6296c1060d4'
+            '604e76e0f702ced493ee22aa3c1768b4776b2008a7d70ae0dd35fe5be3522141'
+            '0f145655d4f2aae3383e0c0269d0c47b8a7176144bf0595425fc38b7ebf53153'
+            '28b6d20d1f7e1f29b61bdafff452f2421b7f5b084f69c9563ec4630b1f041abd')
+validpgpkeys=('EAF1C276A747E9ED86210CBAC3126D3B4AE55E93')
 
 prepare() {
   cd ${srcdir}/${_realname}-${pkgver}
   patch -p1 -i "${srcdir}"/0001-enable-gold-on.mingw32.patch
   patch -p1 -i "${srcdir}"/0002-check-for-unusual-file-harder.patch
-  #patch -p1 -i "${srcdir}"/0003-enable-shared-bfd.all.patch
-  #patch -p1 -i "${srcdir}"/0003-link-to-libibtl-and-libiberty.mingw.patch
-  #patch -p1 -i "${srcdir}"/0004-libiberty-la.mingw.patch
-  #patch -p1 -i "${srcdir}"/0005-shared-opcodes.mingw.patch
-  patch -p1 -i "${srcdir}"/0008-fix-libiberty-makefile.mingw.patch
-  patch -p1 -i "${srcdir}"/0009-fix-libiberty-configure.mingw.patch
-  #patch -p1 -i "${srcdir}"/0013-dont-link-gas-to-libiberty.mingw.patch
-  #patch -p1 -i "${srcdir}"/0014-dont-link-binutils-to-libiberty.mingw.patch
-  #patch -p1 -i "${srcdir}"/0015-dont-link-ld-to-libiberty.mingw.patch
-  #patch -p1 -i "${srcdir}"/0017-fix-iconv-linking.all.patch
+  patch -p1 -i "${srcdir}"/0010-bfd-Increase-_bfd_coff_max_nscns-to-65279.patch
   patch -p1 -i "${srcdir}"/0110-binutils-mingw-gnu-print.patch
 
+  # Upstream patches
+  # https://sourceware.org/bugzilla/show_bug.cgi?id=22762
+  patch -p1 -i "${srcdir}"/0200-remove-provide-qualifiers.patch
 }
 
 build() {
@@ -75,8 +56,7 @@ build() {
     CFLAGS+=" -O0"
   fi
 
-  cd $srcdir
-  rm -rf build-${MINGW_CHOST}
+  [[ -d ${srcdir}/build-${MINGW_CHOST} ]] && rm -rf ${srcdir}/build-${MINGW_CHOST}
   mkdir -p build-${MINGW_CHOST} && cd build-${MINGW_CHOST}
   ../${_realname}-${pkgver}/configure \
     --build=${MINGW_CHOST} \
@@ -87,7 +67,7 @@ build() {
     --enable-lto \
     --with-sysroot=${MINGW_PREFIX} \
     --with-libiconv-prefix=${MINGW_PREFIX} \
-    $_conf \
+    ${_conf} \
     --enable-nls \
     --disable-rpath \
     --disable-multilib \
@@ -121,5 +101,10 @@ package() {
   #install -m644 ${srcdir}/${_realname}-${pkgver}/include/libiberty.h ${pkgdir}${MINGW_PREFIX}/include
   #install -m644 ${srcdir}/${_realname}-${pkgver}/include/demangle.h ${pkgdir}${MINGW_PREFIX}/include
 
-  find  ${pkgdir}${MINGW_PREFIX}/share -type f -iname "opcodes.mo" -o -iname "bfd.mo" | xargs -rtl1 rm
+  find ${pkgdir}${MINGW_PREFIX}/share -type f -iname "opcodes.mo" -o -iname "bfd.mo" | xargs -rtl1 rm
+
+  install -Dm644 ${srcdir}/${_realname}-${pkgver}/COPYING      ${pkgdir}${MINGW_PREFIX}/share/licenses/${_realname}/COPYING
+  install -Dm644 ${srcdir}/${_realname}-${pkgver}/COPYING.LIB  ${pkgdir}${MINGW_PREFIX}/share/licenses/${_realname}/COPYING.LIB
+  install -Dm644 ${srcdir}/${_realname}-${pkgver}/COPYING3     ${pkgdir}${MINGW_PREFIX}/share/licenses/${_realname}/COPYING3
+  install -Dm644 ${srcdir}/${_realname}-${pkgver}/COPYING3.LIB ${pkgdir}${MINGW_PREFIX}/share/licenses/${_realname}/COPYING3.LIB
 }

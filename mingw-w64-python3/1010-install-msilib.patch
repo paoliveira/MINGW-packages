@@ -1,11 +1,11 @@
-diff -urN a/Makefile.pre.in b/Makefile.pre.in
---- a/Makefile.pre.in	2014-10-11 14:23:46.236673900 +0100
-+++ b/Makefile.pre.in	2014-10-11 14:23:48.938828400 +0100
-@@ -1195,6 +1195,7 @@
- 		test/test_importlib/extension test/test_importlib/frozen \
- 		test/test_importlib/import_ test/test_importlib/source \
+diff -Naur Python-3.7.0-orig/Makefile.pre.in Python-3.7.0/Makefile.pre.in
+--- Python-3.7.0-orig/Makefile.pre.in	2018-07-12 10:22:12.056442600 +0300
++++ Python-3.7.0/Makefile.pre.in	2018-07-12 10:22:42.429696000 +0300
+@@ -1334,6 +1334,7 @@
+ 		distutils distutils/command distutils/tests $(XMLLIBSUBDIRS) \
+ 		test/test_tools test/test_warnings test/test_warnings/data \
  		turtledemo \
 +		msilib \
  		multiprocessing multiprocessing/dummy \
  		unittest unittest/test unittest/test/testmock \
- 		venv venv/scripts venv/scripts/posix \
+ 		venv venv/scripts venv/scripts/common venv/scripts/posix \

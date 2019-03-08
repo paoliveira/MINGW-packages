@@ -1,50 +1,64 @@
 # Maintainer: Norbert Pfeiler <norbert.pfeiler@gmail.com>
+# Contributor: Andrew Sun <adsun701@gmail.com>
 
 _realname=snappy
-pkgname="$MINGW_PACKAGE_PREFIX-${_realname}"
-pkgver=1.1.1
-pkgrel=1
+pkgbase=mingw-w64-${_realname}
+pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
+pkgver=1.1.7
+pkgrel=2
 pkgdesc="A fast C++ compressor/decompressor library (mingw-w64)"
 arch=('any')
 license=('New BSD License')
-url="http://snappy.googlecode.com"
-depends=("$MINGW_PACKAGE_PREFIX-gcc-libs")
-makedepends=("$MINGW_PACKAGE_PREFIX-gcc"
+url="https://github.com/google/snappy"
+depends=("${MINGW_PACKAGE_PREFIX}-gcc-libs")
+makedepends=("${MINGW_PACKAGE_PREFIX}-cmake"
+             "${MINGW_PACKAGE_PREFIX}-gcc"
              "make")
-checkdepends=("$MINGW_PACKAGE_PREFIX-zlib"
-              "$MINGW_PACKAGE_PREFIX-lzo2")
-source=("http://snappy.googlecode.com/files/${_realname}-$pkgver.tar.gz"
-        001-no-undefined.patch)
-md5sums=('8887e3b7253b22a31f5486bca3cbc1c2'
-         '8df88ce30eafb903bb9e51a57b947da7')
-
-prepare() {
-  pushd ${_realname}-$pkgver > /dev/null
-  patch -p1 -i ${srcdir}/001-no-undefined.patch
-  autoreconf -fi
-  popd > /dev/null
-
-  mkdir -p build-${MINGW_CHOST}
-  cd ${srcdir}/build-${MINGW_CHOST}
-
-  ../${_realname}-$pkgver/configure \
-    --prefix="$MINGW_PREFIX" \
-    --build=${MINGW_CHOST} \
-    --host=${MINGW_CHOST} \
-    --target=${MINGW_CHOST}
-}
+checkdepends=("${MINGW_PACKAGE_PREFIX}-zlib"
+              "${MINGW_PACKAGE_PREFIX}-lzo2")
+source=("${_realname}-${pkgver}.tar.gz"::"https://github.com/google/snappy/archive/${pkgver}.tar.gz")
+sha256sums=('3dfa02e873ff51a11ee02b9ca391807f0c8ea0529a4924afa645fbf97163f9d4')
 
 build() {
-  cd "build-${MINGW_CHOST}"
+  # Shared Build
+  [[ -d "${srcdir}"/build-${MINGW_CHOST}-shared ]] && rm -rf "${srcdir}"/build-${MINGW_CHOST}-shared
+  mkdir -p ${srcdir}/build-${MINGW_CHOST}-shared
+  cd ${srcdir}/build-${MINGW_CHOST}-shared
+  
+  MSYS2_ARG_CONV_EXCL="-DCMAKE_INSTALL_PREFIX=" \
+    ${MINGW_PREFIX}/bin/cmake \
+      -G'MSYS Makefiles' \
+      -DCMAKE_INSTALL_PREFIX=${MINGW_PREFIX} \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DBUILD_SHARED_LIBS=ON \
+      -DSNAPPY_BUILD_TESTS=OFF \
+      ../${_realname}-${pkgver}
+
+  make
+  
+  # Static Build
+  [[ -d "${srcdir}"/build-${MINGW_CHOST}-static ]] && rm -rf "${srcdir}"/build-${MINGW_CHOST}-static
+  mkdir -p ${srcdir}/build-${MINGW_CHOST}-static
+  cd ${srcdir}/build-${MINGW_CHOST}-static
+  
+  MSYS2_ARG_CONV_EXCL="-DCMAKE_INSTALL_PREFIX=" \
+    ${MINGW_PREFIX}/bin/cmake \
+      -G'MSYS Makefiles' \
+      -DCMAKE_INSTALL_PREFIX=${MINGW_PREFIX} \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DBUILD_SHARED_LIBS=OFF \
+      -DSNAPPY_BUILD_TESTS=OFF \
+      ../${_realname}-${pkgver}
+
   make
 }
 
-check() {
-  cd "build-${MINGW_CHOST}"
-  ./snappy_unittest.exe
-}
-
 package() {
-  cd "build-${MINGW_CHOST}"
-  make DESTDIR=$pkgdir install
+  # Shared Install
+  cd "${srcdir}/build-${MINGW_CHOST}-shared"
+  make DESTDIR=${pkgdir} install
+  
+  # Static Install
+  cd "${srcdir}/build-${MINGW_CHOST}-static"
+  make DESTDIR=${pkgdir} install
 }

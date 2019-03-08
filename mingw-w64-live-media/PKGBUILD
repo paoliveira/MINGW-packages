@@ -4,8 +4,9 @@
 # Contributor: Gilles CHAUVIN <gcnweb@gmail.com>
 
 _realname=live-media
+pkgbase=mingw-w64-${_realname}
 pkgname=("${MINGW_PACKAGE_PREFIX}-${_realname}")
-pkgver=2014.10.21
+pkgver=2018.10.17
 pkgrel=1
 pkgdesc="A set of C++ libraries for multimedia streaming (mingw-w64)"
 arch=('any')
@@ -13,18 +14,21 @@ license=('LGPL')
 url="http://live555.com/liveMedia"
 depends=("${MINGW_PACKAGE_PREFIX}-gcc")
 options=('staticlibs')
-source=("http://live555.com/liveMedia/public/live.${pkgver}.tar.gz")
-md5sums=('c07bbbe7be3add603879431b624b8092')
+source=("https://download.videolan.org/contrib/live555/live.${pkgver}.tar.gz")
+sha256sums=('7c68d9c95b39acd309a2b6a4fc14c3837544a9be3f64062ed38d1ad6f68dc9e8')
 
 build() {
   cd ${srcdir}/live
+  [[ -d "${srcdir}"/build-${CARCH} ]] && rm -rf "${srcdir}"/build-${CARCH}
+  mkdir -p "${srcdir}"/build-${CARCH} && cd "${srcdir}"/build-${CARCH}
+  cp -rf ${srcdir}/live/* "${srcdir}"/build-${CARCH}
   ./genMakefiles mingw
 
   make CC=gcc
 }
 
 package() {
-  cd ${srcdir}/live
+  cd "${srcdir}"/build-${CARCH}
 
   for dir in BasicUsageEnvironment groupsock liveMedia UsageEnvironment; do
     install -dm755 ${pkgdir}${MINGW_PREFIX}/{bin,lib,include/${dir}}

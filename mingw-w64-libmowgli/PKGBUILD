@@ -1,44 +1,46 @@
 # Maintainer: Alexey Pavlov <alexpux@gmail.com>
 
 _realname=libmowgli
+pkgbase=mingw-w64-${_realname}
 pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
-pkgver=2.0.0
-pkgrel=2
+pkgver=2.1.3
+pkgrel=3
 pkgdesc="Performance and usability-oriented extensions to C (mingw-w64)"
 arch=('any')
 url="http://www.atheme.org/project/mowgli"
 license=('GPL')
-depends=("${MINGW_PACKAGE_PREFIX}-openssl")
-makedepends=("${MINGW_PACKAGE_PREFIX}-gcc" "git")
+depends=("${MINGW_PACKAGE_PREFIX}-gcc-libs")
+makedepends=("${MINGW_PACKAGE_PREFIX}-gcc")
 options=('staticlibs' 'strip')
-source=(#"${_realname}-${pkgver}::git+https://github.com/atheme/libmowgli-2.git#tag=${_realname}-${pkgver}"
-        https://github.com/atheme/libmowgli-2/archive/${_realname}-${pkgver}.tar.gz
+source=(${_realname}-${pkgver}.tar.gz::https://github.com/atheme/libmowgli-2/archive/v${pkgver}.tar.gz
         libmowgli-2.0.0-mingw-have-declarations.patch)
-md5sums=('0b8cf8b66d745d40f186e3cbd22fdc0e'
-         '47ee3521d81255a675ff83f2c48b4909')
+sha256sums=('b7faab2fb9f46366a52b51443054a2ed4ecdd04774c65754bf807c5e9bdda477'
+            '5872b636f724b7994fe52719fcbab4bb9d4ea6960eff066ba011480b523db6b6')
 
 prepare() {
-  cd ${srcdir}/${_realname}-2-${_realname}-${pkgver}
+  cd ${srcdir}/${_realname}-2-${pkgver}
   patch -p1 -i ${srcdir}/libmowgli-2.0.0-mingw-have-declarations.patch
 
   #autoreconf -fi
 }
 
 build() {
-  cp -rf ${_realname}-2-${_realname}-${pkgver} ${srcdir}/build-${MINGW_CHOST}
-  cd build-${MINGW_CHOST}
+  [[ -d ${srcdir}/build-${MINGW_CHOST} ]] && rm -rf ${srcdir}/build-${MINGW_CHOST}
+  cp -rf ${_realname}-2-${pkgver} build-${MINGW_CHOST} && cd ${srcdir}/build-${MINGW_CHOST}
   ./configure \
     --prefix=${MINGW_PREFIX} \
     --build=${MINGW_CHOST} \
     --host=${MINGW_CHOST} \
     --target=${MINGW_CHOST} \
     --enable-shared \
-    --enable-static
+    --enable-static \
+    --with-openssl=no
+
   make
 }
 
 package() {
   cd ${srcdir}/build-${MINGW_CHOST}
-  make DESTDIR="$pkgdir" install
+  make DESTDIR="${pkgdir}" install
   install -D -m644 COPYING "${pkgdir}${MINGW_PREFIX}/share/licenses/${_realname}/COPYING"
 }

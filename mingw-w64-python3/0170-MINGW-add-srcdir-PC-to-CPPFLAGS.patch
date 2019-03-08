@@ -1,7 +1,7 @@
-diff -urN a/configure.ac b/configure.ac
---- a/configure.ac	2014-10-11 14:18:56.621108800 +0100
-+++ b/configure.ac	2014-10-11 14:18:59.296261800 +0100
-@@ -4838,6 +4838,16 @@
+diff -Naur Python-3.7.0-orig/configure.ac Python-3.7.0/configure.ac
+--- Python-3.7.0-orig/configure.ac	2018-07-12 10:20:51.934701900 +0300
++++ Python-3.7.0/configure.ac	2018-07-12 10:20:52.262302500 +0300
+@@ -5468,8 +5468,21 @@
    THREADHEADERS="$THREADHEADERS \$(srcdir)/$h"
  done
  
@@ -16,5 +16,10 @@ diff -urN a/configure.ac b/configure.ac
 +esac
 +
  AC_SUBST(SRCDIRS)
- SRCDIRS="Parser Grammar Objects Python Modules Mac"
+ SRCDIRS="Parser Objects Python Modules Programs"
++case $host in
++  *-*-mingw*) SRCDIRS="$SRCDIRS PC";;
++esac
  AC_MSG_CHECKING(for build directories)
+ for dir in $SRCDIRS; do
+     if test ! -d $dir; then

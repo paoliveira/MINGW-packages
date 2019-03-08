@@ -1,72 +1,87 @@
 # Maintainer: Alexey Pavlov <alexpux@gmail.com>
 
 _realname=pip
+pkgbase=mingw-w64-python-${_realname}
 pkgname=("${MINGW_PACKAGE_PREFIX}-python2-${_realname}" "${MINGW_PACKAGE_PREFIX}-python3-${_realname}")
-pkgver=6.0.8
+pkgver=19.0.1
 pkgrel=1
 pkgdesc="An easy_install replacement for installing pypi python packages (mingw-w64)"
 arch=('any')
 license=('MIT')
 url="http://www.pip-installer.org/"
-depends=("${MINGW_PACKAGE_PREFIX}-python2"
-        "${MINGW_PACKAGE_PREFIX}-python2-setuptools"
-        "${MINGW_PACKAGE_PREFIX}-python3"
-        "${MINGW_PACKAGE_PREFIX}-python3-setuptools")
-source=(http://pypi.python.org/packages/source/p/pip/${_realname}-${pkgver}.tar.gz)
-md5sums=('2332e6f97e75ded3bddde0ced01dbda3')
+# "distro" library doesn't support windows
+_deps=('setuptools' 'appdirs' 'cachecontrol' 'colorama' 'distlib' #'distro' 
+       'html5lib' 'lockfile' 'msgpack' 'packaging' 'pep517' 'progress' 'pyparsing' 'pytoml'
+       'requests' 'retrying' 'six' 'webencodings')
+makedepends=("${_deps[@]/#/${MINGW_PACKAGE_PREFIX}-python3-}" "${_deps[@]/#/${MINGW_PACKAGE_PREFIX}-python2-}" 
+             "${MINGW_PACKAGE_PREFIX}-python2-ipaddress"
+             "${MINGW_PACKAGE_PREFIX}-python3-sphinx")
+source=(${_realname}-${pkgver}.tar.gz::https://github.com/pypa/pip/archive/${pkgver}.tar.gz)
+noextract=(${_realname}-${pkgver}.tar.gz)
+sha256sums=('96f92cd35efc4fbeb520996da7aba3ae6491d8e849e2b77dc2044fedcc5fdaba')
+
+shopt -s extglob
 
 prepare() {
-  cd "${srcdir}/${_realname}-${pkgver}"
-  #patch -p1 -i ${srcdir}/mingw-python-fix.patch
+# work around symlinks in pip package that can cause problems with some building
+# where dirs are not removed after being used.
+  rm -rf ${_realname}-${pkgver}/tests/data/packages/symlinks/docs || true 2> /dev/nul
+  bsdtar zxf ${_realname}-${pkgver}.tar.gz || true
 
-  cd "${srcdir}"
-
-  cp -r ${_realname}-${pkgver} ${_realname}-python2
-  cp -r ${_realname}-${pkgver} ${_realname}-python3
+# specify that third-party stuff should not be bundled.  This is from Archlinux
+  rm -rf ${_realname}-${pkgver}/src/pip/_vendor/!(__init__.py)
+  sed -i -e 's/DEBUNDLED = False/DEBUNDLED = True/' \
+         -e '/cachecontrol/a\    vendored("pep517")' \
+        ${_realname}-${pkgver}/src/pip/_vendor/__init__.py
+  for pver in {2,3}; do 
+    rm -rf python${pver}-build-${CARCH}| true
+    cp -r "${_realname}-${pkgver}" "python${pver}-build-${CARCH}"
+  done
 }
 
 build() {
-   # Build python 3 module
-   cd "${srcdir}"/${_realname}-python3
-   ${MINGW_PREFIX}/bin/python3 setup.py build
-
-   # Build python 2 module
-   cd "${srcdir}"/${_realname}-python2
-   ${MINGW_PREFIX}/bin/python2 setup.py build
+  for pver in {2,3}; do
+    msg "Python ${pver} build for ${CARCH}" 
+    cd "${srcdir}/python${pver}-build-${CARCH}"
+    ${MINGW_PREFIX}/bin/python${pver} setup.py build
+  done
 }
 
 package_python2-pip() {
-  depends=("${MINGW_PACKAGE_PREFIX}-python2" "${MINGW_PACKAGE_PREFIX}-python2-setuptools")
+  depends=("${_deps[@]/#/${MINGW_PACKAGE_PREFIX}-python2-}" "${MINGW_PACKAGE_PREFIX}-python2-ipaddress")
 
-  pushd ${MINGW_PREFIX} > /dev/null
-  local _mingw_prefix=`pwd -W`
-  popd > /dev/null
-
-  cd "${srcdir}/${_realname}-python2"
+  cd "${srcdir}/python2-build-${CARCH}"
   MSYS2_ARG_CONV_EXCL="--prefix=;--install-scripts=;--install-platlib=" \
     ${MINGW_PREFIX}/bin/python2 setup.py install --prefix=${MINGW_PREFIX#\/} --root="${pkgdir}" --optimize=1 --skip-build
 
   install -D -m644 LICENSE.txt "${pkgdir}${MINGW_PREFIX}/share/licenses/python2-${_realname}/LICENSE"
-  for _ff in ${pkgdir}${MINGW_PREFIX}/bin/*.py; do
-    sed -e "s|${_mingw_prefix}|${MINGW_PREFIX}|g" -i ${_ff}
+
+  local PREFIX_WIN=$(cygpath -wm ${MINGW_PREFIX})
+  # fix python command in files
+  for _f in "${pkgdir}${MINGW_PREFIX}"/bin/*.py; do
+    sed -e "s|/usr/bin/env |${MINGW_PREFIX}|g" \
+        -e "s|${PREFIX_WIN}|${MINGW_PREFIX}|g" -i ${_f}
   done
+
 }
+
 package_python3-pip() {
-  depends=("${MINGW_PACKAGE_PREFIX}-python3" "${MINGW_PACKAGE_PREFIX}-python3-setuptools")
+  depends=("${_deps[@]/#/${MINGW_PACKAGE_PREFIX}-python3-}")
 
-  pushd ${MINGW_PREFIX} > /dev/null
-  local _mingw_prefix=`pwd -W`
-  popd > /dev/null
+  local _mingw_prefix=$(cygpath -wm ${MINGW_PREFIX})
 
-  cd "${srcdir}/${_realname}-python3"
+  cd "${srcdir}/python3-build-${CARCH}"
   MSYS2_ARG_CONV_EXCL="--prefix=;--install-scripts=;--install-platlib=" \
-    ${MINGW_PREFIX}/bin/python3 setup.py install --prefix=${MINGW_PREFIX#\/} --root="${pkgdir}" --optimize=1 --skip-build
+    ${MINGW_PREFIX}/bin/python3 setup.py install --prefix=${MINGW_PREFIX#\/} --root="${pkgdir}" --optimize=1 --skip-build -v
 
   # Remove conflicted files
   rm -f ${pkgdir}${MINGW_PREFIX}/bin/pip{.exe,.exe.manifest,-script.py}
 
-  for _ff in ${pkgdir}${MINGW_PREFIX}/bin/*.py; do
-    sed -e "s|${_mingw_prefix}|${MINGW_PREFIX}|g" -i ${_ff}
+  local PREFIX_WIN=$(cygpath -wm ${MINGW_PREFIX})
+  # fix python command in files
+  for _f in "${pkgdir}${MINGW_PREFIX}"/bin/*.py; do
+    sed -e "s|/usr/bin/env |${MINGW_PREFIX}|g" \
+        -e "s|${PREFIX_WIN}|${MINGW_PREFIX}|g" -i ${_f}
   done
 
   install -D -m644 LICENSE.txt "${pkgdir}${MINGW_PREFIX}/share/licenses/python3-${_realname}/LICENSE"

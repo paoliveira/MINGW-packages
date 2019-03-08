@@ -1,0 +1,55 @@
+# Maintainer: Ray Donnelly <mingw.android@gmail.com>
+
+_realname=nlopt
+pkgbase=mingw-w64-${_realname}
+pkgname=("${MINGW_PACKAGE_PREFIX}-${_realname}")
+pkgver=2.5.0
+pkgrel=1
+pkgdesc="A library for nonlinear optimization (mingw-w64)"
+arch=('any')
+makedepends=("${MINGW_PACKAGE_PREFIX}-cmake"
+             "${MINGW_PACKAGE_PREFIX}-python2"
+             "${MINGW_PACKAGE_PREFIX}-python2-numpy"
+             "${MINGW_PACKAGE_PREFIX}-swig")
+url='http://ab-initio.mit.edu/wiki/index.php/NLopt'
+license=('LGPLv2.1+')
+source=("${_realname}-${pkgver}.tar.gz::https://github.com/stevengj/nlopt/archive/v${pkgver}.tar.gz")
+sha256sums=('c6dd7a5701fff8ad5ebb45a3dc8e757e61d52658de3918e38bab233e7fd3b4ae')
+noextract=(${_realname}-${pkgver}.tar.gz)
+
+prepare () {
+  [[ -d ${srcdir}/${_realname}-${pkgver} ]] && rm -rf ${srcdir}/${_realname}-${pkgver}
+  tar -xzf ${srcdir}/${_realname}-${pkgver}.tar.gz -C $srcdir || true
+
+  cd "$srcdir"/${_realname}-${pkgver}
+  # fix guile extension
+  curl -L https://github.com/stevengj/nlopt/pull/209.patch | patch -p1
+}
+
+build() {
+  cd "$srcdir"/${_realname}-${pkgver}
+  [[ -d "${srcdir}"/build-${CARCH} ]] && rm -rf "${srcdir}"/build-${CARCH}
+  mkdir -p "${srcdir}"/build-${CARCH} && cd "${srcdir}"/build-${CARCH}
+
+  MSYS2_ARG_CONV_EXCL="-DCMAKE_INSTALL_PREFIX=" \
+  "${MINGW_PREFIX}/bin/cmake.exe" -Wno-dev \
+    -G"MSYS Makefiles" \
+    -DCMAKE_INSTALL_PREFIX="${MINGW_PREFIX}" \
+    -DBUILD_SHARED_LIBS=ON \
+    -DNLOPT_PYTHON=ON \
+    -DNLOPT_SWIG=ON \
+    -DNLOPT_GUILE=OFF \
+    ../${_realname}-${pkgver}
+
+  make
+}
+
+check() {
+  cd "${srcdir}"/build-${CARCH}
+  make check
+}
+
+package() {
+  cd "${srcdir}"/build-${CARCH}
+  make DESTDIR="${pkgdir}" install
+}
