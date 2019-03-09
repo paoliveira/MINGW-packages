@@ -1,0 +1,51 @@
+# Maintainer: Johannes Schindelin <johannes.schindelin@gmx.de>
+
+_realname=msmtp
+pkgbase="mingw-w64-${_realname}"
+pkgname=("${MINGW_PACKAGE_PREFIX}-${_realname}")
+pkgver=1.8.3
+pkgrel=1
+pkgdesc="An SMTP client (mingw-w64)"
+arch=('any')
+license=('GPL2+')
+url="https://msmtp.sourceforge.io/"
+makedepends=("${MINGW_PACKAGE_PREFIX}-gcc"
+             "${MINGW_PACKAGE_PREFIX}-pkg-config")
+depends=("${MINGW_PACKAGE_PREFIX}-gettext"
+         "${MINGW_PACKAGE_PREFIX}-gnutls"
+         "${MINGW_PACKAGE_PREFIX}-gsasl"
+         "${MINGW_PACKAGE_PREFIX}-libffi"
+         "${MINGW_PACKAGE_PREFIX}-libidn"
+         "${MINGW_PACKAGE_PREFIX}-libwinpthread")
+options=('strip')
+source=(https://marlam.de/msmtp/releases/${_realname}-${pkgver}.tar.xz{,.sig}
+        '0001-include-winsock2.patch')
+sha256sums=('3cb2eefd33d048f0f82de100ef39a494e44fd1485e376ead31f733d2f36b92b4'
+            'SKIP'
+            '3729fc8d9a11370324561a76cafe09035391e48c9a55876d1aaa5077944ebf8d')
+
+prepare () {
+  cd ${srcdir}/${_realname}-${pkgver}
+
+  patch -p1 -i "${srcdir}/0001-include-winsock2.patch"
+  autoreconf -i
+}
+
+build() {
+  [[ -d ${srcdir}/build-${MINGW_CHOST} ]] && rm -rf ${srcdir}/build-${MINGW_CHOST}
+  mkdir build-${MINGW_CHOST} && cd ${srcdir}/build-${MINGW_CHOST}
+  ../${_realname}-${pkgver}/configure \
+    --build=${MINGW_CHOST} \
+    --host=${MINGW_CHOST} \
+    --prefix=${MINGW_PREFIX}
+
+  sed -i 's/-R\/mingw..\/lib//' src/Makefile
+  touch ${srcdir}/${_realname}-${pkgver}/src/*.c
+  make
+}
+
+package() {
+  cd ${srcdir}/build-${MINGW_CHOST}
+  make DESTDIR="${pkgdir}" install
+  install -Dm0644 ${srcdir}/${_realname}-${pkgver}/COPYING ${pkgdir}${MINGW_PREFIX}/share/licenses/${_realname}/COPYING
+}

@@ -2,25 +2,32 @@
 # Contributor: Renato Silva <br.renatosilva@gmail.com>
 
 _realname=harfbuzz
+pkgbase=mingw-w64-${_realname}
 pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
-pkgver=0.9.38
-pkgrel=3
+pkgver=2.3.1
+pkgrel=1
 pkgdesc="OpenType text shaping engine (mingw-w64)"
 arch=('any')
-url="http://www.freedesktop.org/wiki/Software/HarfBuzz"
+url="https://www.freedesktop.org/wiki/Software/HarfBuzz"
 license=("MIT")
 makedepends=("${MINGW_PACKAGE_PREFIX}-gcc"
-            "${MINGW_PACKAGE_PREFIX}-pkg-config"
-            "${MINGW_PACKAGE_PREFIX}-icu"
-            "${MINGW_PACKAGE_PREFIX}-gobject-introspection")
-depends=("${MINGW_PACKAGE_PREFIX}-gcc-libs"
-        "${MINGW_PACKAGE_PREFIX}-glib2"
-        "${MINGW_PACKAGE_PREFIX}-freetype"
-        "${MINGW_PACKAGE_PREFIX}-cairo")
+             "${MINGW_PACKAGE_PREFIX}-icu"
+             "${MINGW_PACKAGE_PREFIX}-gobject-introspection"
+             "${MINGW_PACKAGE_PREFIX}-pkg-config"
+             "${MINGW_PACKAGE_PREFIX}-cairo"
+             "${MINGW_PACKAGE_PREFIX}-python2"
+             "${MINGW_PACKAGE_PREFIX}-ragel")
+depends=("${MINGW_PACKAGE_PREFIX}-freetype"
+         "${MINGW_PACKAGE_PREFIX}-gcc-libs"
+         "${MINGW_PACKAGE_PREFIX}-glib2"
+         "${MINGW_PACKAGE_PREFIX}-graphite2")
+checkdepends=("${MINGW_PACKAGE_PREFIX}-python3-fonttools" 
+              "${MINGW_PACKAGE_PREFIX}-python3-setuptools")
 options=('strip' 'staticlibs')
-optdepends=("${MINGW_PACKAGE_PREFIX}-icu: harfbuzz-icu")
-source=("http://www.freedesktop.org/software/harfbuzz/release/${_realname}-${pkgver}.tar.bz2")
-sha256sums=('6736f383b4edfcaaeb6f3292302ca382d617d8c79948bb2dd2e8f86cdccfd514')
+optdepends=("${MINGW_PACKAGE_PREFIX}-icu: harfbuzz-icu support"
+            "${MINGW_PACKAGE_PREFIX}-cairo: hb-view program")
+source=("https://www.freedesktop.org/software/harfbuzz/release/${_realname}-${pkgver}.tar.bz2")
+sha256sums=('f205699d5b91374008d6f8e36c59e419ae2d9a7bb8c5d9f34041b9a5abcae468')
 
 prepare() {
   cd "${srcdir}/${_realname}-${pkgver}"
@@ -28,27 +35,76 @@ prepare() {
 }
 
 build() {
-  mkdir -p "${srcdir}/build-${MINGW_CHOST}"
-  cd "${srcdir}/build-${MINGW_CHOST}"
-  "${srcdir}"/${_realname}-${pkgver}/configure \
+  # Build static and shared libs separately due to necessity of defining DGRAPHITE2_STATIC
+  # manually when building static version
+  export _static_dir="${srcdir}/build-${MINGW_CHOST}-static"
+  export _shared_dir="${srcdir}/build-${MINGW_CHOST}-shared"
+
+  # static build
+  [[ -d "${_static_dir}" ]] && rm -rf "${_static_dir}"
+  mkdir -p "${_static_dir}" && pushd "${_static_dir}"
+  CFLAGS="${CFLAGS} -DGRAPHITE2_STATIC" \
+  CXXFLAGS="${CXXFLAGS} -DGRAPHITE2_STATIC" \
+  ../${_realname}-${pkgver}/configure \
     --prefix=${MINGW_PREFIX} \
     --build=${MINGW_CHOST} \
     --host=${MINGW_CHOST} \
-    --enable-shared \
-    --enable-static \
+    --enable-shared=no \
+    --enable-static=yes \
     --enable-introspection \
+    --with-graphite2=yes \
+    --with-uniscribe=yes \
+    --with-directwrite=yes \
     --with-gobject
   make
+  popd
+
+  # shared build
+  [[ -d "${_shared_dir}" ]] && rm -rf "${_shared_dir}"
+  mkdir -p "${_shared_dir}" && pushd "${_shared_dir}"
+  ../${_realname}-${pkgver}/configure \
+    --prefix=${MINGW_PREFIX} \
+    --build=${MINGW_CHOST} \
+    --host=${MINGW_CHOST} \
+    --enable-shared=yes \
+    --enable-static=no \
+    --enable-introspection \
+    --with-graphite2=yes \
+    --with-uniscribe=yes \
+    --with-directwrite=yes \
+    --with-gobject
+  make
+  popd
 }
 
 check(){
-  cd "${srcdir}/build-${MINGW_CHOST}"
+  local _static_dir="${srcdir}/build-${MINGW_CHOST}-static"
+  local _shared_dir="${srcdir}/build-${MINGW_CHOST}-shared"
+
+  # static build 
+  pushd "${_static_dir}"
   make check
+  popd
+
+  # shared build
+  pushd "${_shared_dir}"
+  make check
+  popd
 }
 
 package() {
-  cd "${srcdir}/build-${MINGW_CHOST}"
-  make DESTDIR="$pkgdir" install
-  find "${pkgdir}${MINGW_PREFIX}" -name '*.def' -o -name '*.exp' | xargs -rtl1 rm
+  local _static_dir="${srcdir}/build-${MINGW_CHOST}-static"
+  local _shared_dir="${srcdir}/build-${MINGW_CHOST}-shared"
+
+  # static build
+  pushd "${_static_dir}"
+  make DESTDIR="${pkgdir}" install
+  popd
+
+  # shared build
+  pushd "${_shared_dir}"
+  make DESTDIR="${pkgdir}" install
+  popd
+
   install -Dm644 "${srcdir}/${_realname}-${pkgver}/COPYING" "${pkgdir}${MINGW_PREFIX}/share/licenses/${_realname}/COPYING"
 }

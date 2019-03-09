@@ -1,48 +1,39 @@
 # Maintainer: Alexey Pavlov <alexpux@gmail.com>
 
 _realname=physfs
-
+pkgbase=mingw-w64-${_realname}
 pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
-pkgver=2.0.3
+conflicts=("${MINGW_PACKAGE_PREFIX}-${_realname}-hg")
+replaces=("${MINGW_PACKAGE_PREFIX}-${_realname}-hg")
+pkgver=3.0.1
 pkgrel=1
 pkgdesc="A library to provide abstract access to various archives (mingw-w64)"
 arch=('any')
-url="http://icculus.org/physfs/"
+url="https://icculus.org/physfs/"
 license=('ZLIB')
 makedepends=("${MINGW_PACKAGE_PREFIX}-gcc" "${MINGW_PACKAGE_PREFIX}-cmake")
 depends=("${MINGW_PACKAGE_PREFIX}-zlib")
 options=('strip' 'staticlibs')
-source=(http://icculus.org/physfs/downloads/${_realname}-${pkgver}.tar.bz2)
-md5sums=('c2c727a8a8deb623b521b52d0080f613')
+source=(https://icculus.org/physfs/downloads/${_realname}-${pkgver}.tar.bz2)
+sha256sums=('b77b9f853168d9636a44f75fca372b363106f52d789d18a2f776397bf117f2f1')
 
 build() {
-  cd "${srcdir}/physfs-${pkgver}"
-  # fix compiler error due to an unused variable
-  sed -i "/lastDirectory/d" archivers/wad.c
-  export CFLAGS+=" -fno-strict-aliasing"
-  export CXXFLAGS+=" -fno-strict-aliasing"
-  #Unstrict warnings are required as 64 bit compiler complains about an int->pointer cast (which should be safe)
-  sed -i 's/-Werror//g' CMakeLists.txt
+  [[ -d build-${MINGW_CHOST} ]] && rm -rf build-${MINGW_CHOST}
+  mkdir -p "${srcdir}/build-${MINGW_CHOST}" && cd "${srcdir}/build-${MINGW_CHOST}"
 
-  mkdir -p ${pkgdir}${MINGW_PREFIX}
-  pushd ${pkgdir}${MINGW_PREFIX} > /dev/null
-  export PREFIX_WIN=`pwd -W`
-  popd > /dev/null
-
-  mkdir -p "${srcdir}/build-${MINGW_CHOST}"
-  cd "${srcdir}/build-${MINGW_CHOST}"
-  ${MINGW_PREFIX}/bin/cmake  \
+  MSYS2_ARG_CONV_EXCL="-DCMAKE_INSTALL_PREFIX=" \
+  ${MINGW_PREFIX}/bin/cmake \
     -G"MSYS Makefiles" \
-    -DCMAKE_INSTALL_PREFIX:PATH=${PREFIX_WIN} \
+    -DCMAKE_INSTALL_PREFIX=${MINGW_PREFIX} \
     -DPHYSFS_BUILD_TEST=OFF \
     -DPHYSFS_BUILD_WX_TEST=OFF \
     ../${_realname}-${pkgver}
-  make all
+
+  make
 }
 
 package() {
   cd "${srcdir}/build-${MINGW_CHOST}"
-  make install
-  cd "${srcdir}/physfs-${pkgver}"
-  install -D -m644 LICENSE.txt "${pkgdir}${MINGW_PREFIX}/share/licenses/${_realname}/LICENSE"
+  make DESTDIR=${pkgdir} install
+  install -D -m644 ${srcdir}/physfs-${pkgver}/LICENSE.txt "${pkgdir}${MINGW_PREFIX}/share/licenses/${_realname}/LICENSE"
 }

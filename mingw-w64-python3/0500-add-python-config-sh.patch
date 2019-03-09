@@ -1,7 +1,6 @@
-diff -urN a/Misc/python-config.sh.in b/Misc/python-config.sh.in
---- a/Misc/python-config.sh.in	2014-10-11 14:21:11.611829800 +0100
-+++ b/Misc/python-config.sh.in	2014-10-11 14:21:13.685948500 +0100
-@@ -1,25 +1,37 @@
+--- Python-3.7.0/Misc/python-config.sh.in.orig	2018-06-27 05:07:35.000000000 +0200
++++ Python-3.7.0/Misc/python-config.sh.in	2018-07-27 21:58:05.397283200 +0200
+@@ -1,32 +1,44 @@
  #!/bin/sh
  
 -# Keep this script in sync with python-config.in
@@ -42,23 +41,21 @@ diff -urN a/Misc/python-config.sh.in b/Misc/python-config.sh.in
 +    fi
 +    # Since we don't know where the output from this script will end up
 +    # we keep all paths in Windows-land since MSYS2 can handle that
-+    # whilst native tools can't handle paths in MSYS2-land.
++    # while native tools can't handle paths in MSYS2-land.
 +    if [ "$OSTYPE" = "msys" ]; then
 +        RESULT=$(cd "$RESULT" && pwd -W)
      fi
      echo $RESULT
  }
-@@ -27,8 +39,7 @@
- prefix_build="@prefix@"
+ 
  prefix_real=$(installed_prefix "$0")
  
 -# Use sed to fix paths from their built-to locations to their installed-to
--# locations.
-+# Use sed to fix paths from their built to locations to their installed to locations.
- prefix=$(echo "$prefix_build" | sed "s#$prefix_build#$prefix_real#")
- exec_prefix_build="@exec_prefix@"
- exec_prefix=$(echo "$exec_prefix_build" | sed "s#$exec_prefix_build#$prefix_real#")
-@@ -40,13 +51,17 @@
++# Use sed to fix paths from their built-to locations to their installed to
+ # locations. Keep prefix & exec_prefix using their original values in case
+ # they are referenced in other configure variables, to prevent double
+ # substitution, issue #22140.
+@@ -41,13 +53,17 @@
  LIBC="@LIBC@"
  SYSLIBS="$LIBM $LIBC"
  ABIFLAGS="@ABIFLAGS@"
@@ -66,7 +63,7 @@ diff -urN a/Misc/python-config.sh.in b/Misc/python-config.sh.in
 +if [ "$ABIFLAGS" = "@""ABIFLAGS""@" ] ; then
 +    ABIFLAGS=
 +fi
- LIBS="@LIBS@ $SYSLIBS -lpython${VERSION}${ABIFLAGS}"
+ LIBS="-lpython${VERSION}${ABIFLAGS} @LIBS@ $SYSLIBS"
  BASECFLAGS="@BASECFLAGS@"
 -LDLIBRARY="@LDLIBRARY@"
 -LINKFORSHARED="@LINKFORSHARED@"
@@ -75,10 +72,10 @@ diff -urN a/Misc/python-config.sh.in b/Misc/python-config.sh.in
  LDVERSION="@LDVERSION@"
 +LDLIBRARY="@LDLIBRARY@"
 +LINKFORSHARED="@LINKFORSHARED@"
- LIBDEST=${prefix}/lib/python${VERSION}
- LIBPL=$(echo "@LIBPL@" | sed "s#$prefix_build#$prefix_real#")
- SO="@SO@"
-@@ -59,33 +74,33 @@
+ LIBDEST=${prefix_real}/lib/python${VERSION}
+ LIBPL=$(echo "@LIBPL@" | sed "s#$prefix#$prefix_real#")
+ SO="@EXT_SUFFIX@"
+@@ -60,33 +76,33 @@
  do
      case $ARG in
          --help)
@@ -94,34 +91,33 @@ diff -urN a/Misc/python-config.sh.in b/Misc/python-config.sh.in
      esac
  done
  
--for ARG in "$@"
-+for ARG in $*
+ for ARG in "$@"
  do
 -    case "$ARG" in
 +    case $ARG in
          --prefix)
--            echo "$prefix"
-+            echo -ne "$prefix"
+-            echo "$prefix_real"
++            echo -ne "$prefix_real"
          ;;
          --exec-prefix)
--            echo "$exec_prefix"
-+            echo -ne "$exec_prefix "
+-            echo "$exec_prefix_real"
++            echo -ne "$exec_prefix_real "
          ;;
          --includes)
 -            echo "$INCDIR $PLATINCDIR"
-+            echo -ne "$INCDIR "
++            echo -ne "$INCDIR $PLATINCDIR"
          ;;
          --cflags)
 -            echo "$INCDIR $PLATINCDIR $BASECFLAGS $CFLAGS $OPT"
-+            echo -ne "$INCDIR $BASECFLAGS $CFLAGS $OPT "
++            echo -ne "$INCDIR $PLATINCDIR $BASECFLAGS $CFLAGS $OPT"
          ;;
          --libs)
 -            echo "$LIBS"
-+            echo -ne "$LIBS "
++            echo -ne "$LIBS"
          ;;
          --ldflags)
              LINKFORSHAREDUSED=
-@@ -96,16 +111,16 @@
+@@ -97,16 +113,16 @@
              if [ "$PY_ENABLE_SHARED" = "0" ] ; then
                  LIBPLUSED="-L$LIBPL"
              fi

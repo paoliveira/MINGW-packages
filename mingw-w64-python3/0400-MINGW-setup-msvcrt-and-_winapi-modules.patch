@@ -1,6 +1,6 @@
-diff -urN a/Modules/_winapi.c b/Modules/_winapi.c
---- a/Modules/_winapi.c	2014-10-11 14:20:25.474190900 +0100
-+++ b/Modules/_winapi.c	2014-10-11 14:20:27.224291000 +0100
+diff -Naur Python-3.7.0-orig/Modules/_winapi.c Python-3.7.0/Modules/_winapi.c
+--- Python-3.7.0-orig/Modules/_winapi.c	2018-06-27 06:07:35.000000000 +0300
++++ Python-3.7.0/Modules/_winapi.c	2018-07-12 10:21:21.496753800 +0300
 @@ -39,7 +39,9 @@
  
  #define WINDOWS_LEAN_AND_MEAN
@@ -8,12 +8,24 @@ diff -urN a/Modules/_winapi.c b/Modules/_winapi.c
 +#if defined(Py_DEBUG)
  #include <crtdbg.h>
 +#endif
+ #include "winreparse.h"
  
  #if defined(MS_WIN32) && !defined(MS_WIN64)
- #define HANDLE_TO_PYNUM(handle) \
-diff -urN a/PC/msvcrtmodule.c b/PC/msvcrtmodule.c
---- a/PC/msvcrtmodule.c	2014-10-11 14:20:25.201175300 +0100
-+++ b/PC/msvcrtmodule.c	2014-10-11 14:20:27.225291100 +0100
+diff -Naur Python-3.7.0-orig/Modules/main.c Python-3.7.0/Modules/main.c
+--- Python-3.7.0-orig/Modules/main.c	2018-06-27 06:07:35.000000000 +0300
++++ Python-3.7.0/Modules/main.c	2018-07-12 10:21:21.496753800 +0300
+@@ -18,7 +18,7 @@
+ #  endif
+ #endif
+ 
+-#ifdef _MSC_VER
++#if defined(_WIN32) && defined(Py_DEBUG)
+ #  include <crtdbg.h>
+ #endif
+ 
+diff -Naur Python-3.7.0-orig/PC/msvcrtmodule.c Python-3.7.0/PC/msvcrtmodule.c
+--- Python-3.7.0-orig/PC/msvcrtmodule.c	2018-06-27 06:07:35.000000000 +0300
++++ Python-3.7.0/PC/msvcrtmodule.c	2018-07-12 10:21:21.512353900 +0300
 @@ -21,7 +21,9 @@
  #include <io.h>
  #include <conio.h>
@@ -24,10 +36,22 @@ diff -urN a/PC/msvcrtmodule.c b/PC/msvcrtmodule.c
  #include <windows.h>
  
  #ifdef _MSC_VER
-diff -urN a/setup.py b/setup.py
---- a/setup.py	2014-10-11 14:20:24.603141100 +0100
-+++ b/setup.py	2014-10-11 14:20:27.226291100 +0100
-@@ -887,6 +887,24 @@
+diff -Naur Python-3.7.0-orig/Python/dynamic_annotations.c Python-3.7.0/Python/dynamic_annotations.c
+--- Python-3.7.0-orig/Python/dynamic_annotations.c	2018-06-27 06:07:35.000000000 +0300
++++ Python-3.7.0/Python/dynamic_annotations.c	2018-07-12 10:21:21.465553800 +0300
+@@ -27,7 +27,7 @@
+  * Author: Kostya Serebryany
+  */
+ 
+-#ifdef _MSC_VER
++#ifdef MS_WINDOWS
+ # include <windows.h>
+ #endif
+ 
+diff -Naur Python-3.7.0-orig/setup.py Python-3.7.0/setup.py
+--- Python-3.7.0-orig/setup.py	2018-07-12 10:21:21.106753200 +0300
++++ Python-3.7.0/setup.py	2018-07-12 10:21:21.512353900 +0300
+@@ -962,6 +962,24 @@
          min_db_ver = (3, 3)
          db_setup_debug = False   # verbose debug prints from this script?
  

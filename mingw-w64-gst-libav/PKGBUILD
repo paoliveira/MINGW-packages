@@ -1,24 +1,21 @@
 # Maintainer: AlexWMF <alexxwmf@gmail.com>
 
 _realname=gst-libav
+pkgbase=mingw-w64-${_realname}
 pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
-pkgver=1.4.5
+pkgver=1.14.4
 pkgrel=1
 pkgdesc="GStreamer libav (mingw-w64)"
 arch=('any')
-url="http://gstreamer.freedesktop.org/"
+url="https://gstreamer.freedesktop.org/"
 license=("LGPL")
-makedepends=("${MINGW_PACKAGE_PREFIX}-gcc"
-            "${MINGW_PACKAGE_PREFIX}-pkg-config"
-            "${MINGW_PACKAGE_PREFIX}-python2"
-            "yasm"
-            )
-depends=("${MINGW_PACKAGE_PREFIX}-bzip2"
-        "${MINGW_PACKAGE_PREFIX}-gst-plugins-base"
-        "${MINGW_PACKAGE_PREFIX}-gstreamer")
+makedepends=("${MINGW_PACKAGE_PREFIX}-gobject-introspection"
+             "${MINGW_PACKAGE_PREFIX}-gtk-doc"
+             "${MINGW_PACKAGE_PREFIX}-nasm")
+depends=("${MINGW_PACKAGE_PREFIX}-gst-plugins-base")
 options=(!libtool strip staticlibs)
 source=(${url}/src/${_realname}/${_realname}-${pkgver}.tar.xz)
-md5sums=('f4922a46adbcbe7bd01331ff5dc7979d')
+sha256sums=('dfd78591901df7853eab7e56a86c34a1b03635da0d3d56b89aa577f1897865da')
 
 prepare() {
   cd ${srcdir}/${_realname}-${pkgver}
@@ -30,19 +27,24 @@ build() {
   [[ -d "${srcdir}/build-${MINGW_CHOST}" ]] && rm -rf "${srcdir}/build-${MINGW_CHOST}"
   mkdir -p "${srcdir}/build-${MINGW_CHOST}"
   cd "${srcdir}/build-${MINGW_CHOST}"
+
+  MSYSTEM=mingw32 \
   ../${_realname}-${pkgver}/configure \
     --prefix=${MINGW_PREFIX} \
     --build=${MINGW_CHOST} \
     --host=${MINGW_CHOST} \
+    --with-package-origin=https://www.msys2.org \
     --disable-static \
     --enable-shared \
     --enable-silent-rules \
-    --disable-gtk-doc
+    --disable-gtk-doc \
+    --without-system-libav
   make
 }
 
 package() {
   cd "${srcdir}/build-${MINGW_CHOST}"
-  make -j1 DESTDIR="$pkgdir" install
+  make -j1 DESTDIR="${pkgdir}" install
+
   rm -f ${pkgdir}${MINGW_PREFIX}/lib/gstreamer*/*.a
 }

@@ -1,98 +1,102 @@
 # Maintainer: Alexey Pavlov <alexpux@gmail.com>
 
 _realname=kicad
-pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}-git"
-pkgver=r6887.91c0868
+pkgbase=mingw-w64-${_realname}-git
+_sub=("footprints" "symbols" "templates" "packages3D")
+pkgname=("${MINGW_PACKAGE_PREFIX}-${_realname}-git")
+pkgver=r12014.638b4384e
 pkgrel=1
-pkgdesc="Software for the creation of electronic schematic diagrams and printed circuit board artwork"
-arch=('any')
+pkgdesc="Software for the creation of electronic schematic diagrams and printed circuit board artwork (mingw-w64)"
+arch=("any")
 url="http://www.kicad-pcb.org"
-license=("GPL2+")
-provides=("${MINGW_PACKAGE_PREFIX}-${_realname}")
-conflicts=("${MINGW_PACKAGE_PREFIX}-${_realname}")
-depends=("${MINGW_PACKAGE_PREFIX}-boost"
-        "${MINGW_PACKAGE_PREFIX}-cairo"
-        "${MINGW_PACKAGE_PREFIX}-glew"
-        "${MINGW_PACKAGE_PREFIX}-openssl"
-        "${MINGW_PACKAGE_PREFIX}-wxPython"
-        "${MINGW_PACKAGE_PREFIX}-wxWidgets")
+license=("GPLv3+")
 makedepends=("${MINGW_PACKAGE_PREFIX}-cmake"
+             "${MINGW_PACKAGE_PREFIX}-doxygen"
              "${MINGW_PACKAGE_PREFIX}-gcc"
+             "${MINGW_PACKAGE_PREFIX}-glm<0.9.9.3"
              "${MINGW_PACKAGE_PREFIX}-python2"
              "${MINGW_PACKAGE_PREFIX}-pkg-config"
              "${MINGW_PACKAGE_PREFIX}-swig"
-             "bzr"
-             "git"
-             "doxygen")
+             "git")
 source=("${_realname}"::"git+https://github.com/KiCad/kicad-source-mirror.git"
-        "${_realname}-docs"::"bzr+https://code.launchpad.net/~kicad-developers/kicad/doc"
-        "${_realname}-libs"::"git+https://github.com/KiCad/kicad-library.git"
-       )
-md5sums=('SKIP'
-         'SKIP'
-         'SKIP'
-        )
+        "${_realname}-i18n"::"git+https://github.com/KiCad/kicad-i18n.git")
+sha256sums=('SKIP'
+            'SKIP')
 
 pkgver() {
-  cd "$srcdir/$_realname"
-  printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+  cd "${srcdir}/${_realname}"
+  printf "r%s.%s" "$(git rev-list --count --first-parent HEAD)" "$(git rev-parse --short HEAD)"
 }
 
-build() {
-  # Configure and build KiCad.
+prepare() {
+  cp -f ${srcdir}/${_realname}/template/kicad.pro ${srcdir}/kicad-templates/
+  
   [[ -d build-${MINGW_CHOST} ]] && rm -r build-${MINGW_CHOST}
+  [[ -d build-i18n ]] && rm -r build-i18n
+  true
+}
+
+build_kicad() {
+  cd "${srcdir}"
+  # Configure and build KiCad.
   mkdir build-${MINGW_CHOST} && cd build-${MINGW_CHOST}
+
+  declare -a _btype
+  if check_option "debug" "y"; then
+    _btype=Debug
+  else
+    _btype=Release
+  fi
+
+  MSYS2_ARG_CONV_EXCL="-DCMAKE_INSTALL_PREFIX=;DCMAKE_PREFIX_PATH=;DEFAULT_INSTALL_PATH=" \
   ${MINGW_PREFIX}/bin/cmake.exe \
     -G"MSYS Makefiles" \
     -DCMAKE_PREFIX_PATH=${MINGW_PREFIX} \
-    -DCMAKE_INSTALL_PREFIX=${pkgdir}${MINGW_PREFIX} \
+    -DCMAKE_INSTALL_PREFIX=${MINGW_PREFIX} \
+    -DCMAKE_BUILD_TYPE=${_btype} \
+    -DDEFAULT_INSTALL_PATH=${MINGW_PREFIX} \
     -DOPENSSL_ROOT_DIR=${MINGW_PREFIX} \
-    -DKICAD_SKIP_BOOST=ON \
     -DKICAD_SCRIPTING=ON \
     -DKICAD_SCRIPTING_MODULES=ON \
     -DKICAD_SCRIPTING_WXPYTHON=ON \
     -DPYTHON_EXECUTABLE=${MINGW_PREFIX}/bin/python2.exe \
-    ../$_realname
-    #-DVERBOSE=1
+    ../${_realname}
 
   make
 
-  cd ../
-
-  # Configure the documentation installation build.
-  [[ -d build-docs ]] && rm -r build-docs
-  mkdir build-docs && cd build-docs
+  cd "${srcdir}"
+  # Configure the translationn installation build.
+  mkdir build-i18n && cd build-i18n
+  
+  MSYS2_ARG_CONV_EXCL="-DCMAKE_INSTALL_PREFIX=" \
   ${MINGW_PREFIX}/bin/cmake.exe \
     -G "MSYS Makefiles" \
-    -DCMAKE_INSTALL_PREFIX=${pkgdir}${MINGW_PREFIX} \
-    ../${_realname}-docs
-
-  cd ../
-
-  # Configure the library installation build.
-  [[ -d build-libs ]] && rm -r build-libs
-  mkdir build-libs && cd build-libs
-  ${MINGW_PREFIX}/bin/cmake.exe \
-    -G "MSYS Makefiles" \
-    -DCMAKE_INSTALL_PREFIX=${pkgdir}${MINGW_PREFIX} \
-    ../${_realname}-libs
-
+    -DCMAKE_INSTALL_PREFIX=${MINGW_PREFIX} \
+    ../${_realname}-i18n
 }
 
-package() {
-  # Install KiCad.
-  cd build-${MINGW_CHOST}
-  make install
+_doc=("ca" "de" "en" "es" "fr" "id" "it" "ja" "nl" "pl" "ru" "zh")
+for _d in ${_doc[@]}; do _doc_pkg+=("\"${MINGW_PACKAGE_PREFIX}-${_realname}-doc-${_d}: Documentation for KiCad (mingw-w64)\""); done
+for _s in ${_sub[@]}; do _sub_pkg+=("${MINGW_PACKAGE_PREFIX}-${_realname}-${_s}-git"); done
 
-  cd ../
+eval "package_${MINGW_PACKAGE_PREFIX}-${_realname}-git() {
+  depends=("${MINGW_PACKAGE_PREFIX}-boost"
+         "${MINGW_PACKAGE_PREFIX}-cairo"
+         "${MINGW_PACKAGE_PREFIX}-curl"
+         "${MINGW_PACKAGE_PREFIX}-glew"
+         "${MINGW_PACKAGE_PREFIX}-ngspice"
+         "${MINGW_PACKAGE_PREFIX}-oce"
+         "${MINGW_PACKAGE_PREFIX}-openssl"
+         "${MINGW_PACKAGE_PREFIX}-wxPython"
+         "${MINGW_PACKAGE_PREFIX}-wxWidgets")
+  optdepends+=("${_doc_pkg[@]}" "\${_sub_pkg[@]}")
+  conflicts=("${MINGW_PACKAGE_PREFIX}-${_realname}")
+  
+  build_kicad
+  
+  cd "\"\${srcdir}\"/build-${MINGW_CHOST}"
+  make DESTDIR="\"\${pkgdir}\"" install
 
-  # Install KiCad documentation.
-  cd build-docs
-  make install
-
-  cd ../
-
-  # Install KiCad libraries.
-  cd build-libs
-  make install
-}
+  cd "\"\${srcdir}\"/build-i18n"
+  make DESTDIR="\"\${pkgdir}\"" install
+}"

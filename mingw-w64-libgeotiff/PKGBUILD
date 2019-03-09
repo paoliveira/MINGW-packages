@@ -1,26 +1,25 @@
 # Maintainer: Alexey Pavlov <alexpux@gmail.com>
 
 _realname=libgeotiff
-
+pkgbase=mingw-w64-${_realname}
 pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
-pkgver=1.4.0
-pkgrel=1
-pkgdesc="Cartographic projection software (PROJ.4) (mingw-w64)"
+pkgver=1.4.3
+pkgrel=2
+pkgdesc="TIFF based interchange format for georeferenced raster imagery (mingw-w64)"
 arch=(any)
-url="http://trac.osgeo.org/geotiff/"
+url="https://trac.osgeo.org/geotiff/"
 license=('MIT')
 depends=("${MINGW_PACKAGE_PREFIX}-gcc-libs"
-    "${MINGW_PACKAGE_PREFIX}-libtiff"
-    "${MINGW_PACKAGE_PREFIX}-libjpeg"
-    "${MINGW_PACKAGE_PREFIX}-proj"
-    "${MINGW_PACKAGE_PREFIX}-zlib")
-groups=("${MINGW_PACKAGE_PREFIX}")
+         "${MINGW_PACKAGE_PREFIX}-libtiff"
+         "${MINGW_PACKAGE_PREFIX}-libjpeg"
+         "${MINGW_PACKAGE_PREFIX}-proj"
+         "${MINGW_PACKAGE_PREFIX}-zlib")
 makedepends=("${MINGW_PACKAGE_PREFIX}-gcc" "${MINGW_PACKAGE_PREFIX}-libtool")
 options=('staticlibs' 'strip')
 source=("http://download.osgeo.org/geotiff/${_realname}/${_realname}-${pkgver}.tar.gz"
     'libgeotiff_buildsys.patch')
-md5sums=('efa7b418bc00228fcda4da63557e40c2'
-         '6a1979625d3cd0261f05a311baec3f5c')
+sha256sums=('b8510d9b968b5ee899282cdd5bef13fd02d5a4c19f664553f81e31127bc47265'
+            'b158fc586ea55e5c8a1c8137eaf9a1f95c2d28709f8b550739aad9f85235bfcf')
 
 prepare() {
   cd "${srcdir}/${_realname}-${pkgver}"
@@ -37,30 +36,34 @@ prepare() {
     fi
   done
 
-  autoreconf -if
+  #autoreconf -fiv
+  ./autogen.sh
 }
 
 build() {
-  [[ -d "$srcdir/build-${MINGW_CHOST}" ]] && rm -rf "$srcdir/build-${MINGW_CHOST}"
-  mkdir "$srcdir/build-${MINGW_CHOST}"
-  cd "$srcdir/build-${MINGW_CHOST}"
-
-    ../${_realname}-${pkgver}/configure \
-      --prefix=${MINGW_PREFIX} \
-      --build=${MINGW_CHOST} \
+  [[ -d "${srcdir}/build-${MINGW_CHOST}" ]] && rm -rf "${srcdir}/build-${MINGW_CHOST}"
+  mkdir "${srcdir}/build-${MINGW_CHOST}" && cd "${srcdir}/build-${MINGW_CHOST}"
+  
+  CPPFLAGS+=" -DACCEPT_USE_OF_DEPRECATED_PROJ_API_H=1"
+  
+  ../${_realname}-${pkgver}/configure \
+    --prefix=${MINGW_PREFIX} \
+    --build=${MINGW_CHOST} \
     --host=${MINGW_CHOST} \
     --target=${MINGW_CHOST} \
     --with-proj \
     --with-jpeg \
     --with-zip
-    make
+
+  make
 }
 
 package() {
-    cd "$srcdir/build-${MINGW_CHOST}"
-    make DESTDIR="$pkgdir" install
+  cd "${srcdir}/build-${MINGW_CHOST}"
+  make DESTDIR="${pkgdir}" install
 
   mkdir -p ${pkgdir}${MINGW_PREFIX}/lib/pkgconfig/
+
 cat > ${pkgdir}${MINGW_PREFIX}/lib/pkgconfig/${_realname}.pc <<EOF
 prefix=${MINGW_PREFIX}
 exec_prefix=\${prefix}
@@ -73,5 +76,6 @@ Version: ${pkgver}
 Libs: -L\${libdir} -lgeotiff
 Cflags: -I\${includedir}
 EOF
-    find "${pkgdir}${MINGW_PREFIX}" -name '*.def' -o -name '*.exp' | xargs -rtl1 rm
+
+  find "${pkgdir}${MINGW_PREFIX}" -name '*.def' -o -name '*.exp' | xargs -rtl1 rm
 }

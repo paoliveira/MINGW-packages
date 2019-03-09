@@ -1,45 +1,67 @@
 # Maintainer: Jianfeng Liu <liujianfeng1994@gmail.com>
+# Contributor: Olivier Michel <Olivier.Michel@cyberbotics.com>
+# Contributor: Andrew Sun <adsun701@gmail.com>
 
 _realname=libzip
+pkgbase=mingw-w64-${_realname}
 pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
-pkgver=0.11.2
+pkgver=1.5.1
 pkgrel=1
 pkgdesc="A C library for reading, creating, and modifying zip archives (mingw-w64)"
-url="http://www.nih.at/libzip/index.html"
+url="https://www.nih.at/libzip/index.html"
 license=('BSD')
 arch=('any')
-depends=("${MINGW_PACKAGE_PREFIX}-zlib")
-makedepends=("${MINGW_PACKAGE_PREFIX}-gcc")
+depends=("${MINGW_PACKAGE_PREFIX}-bzip2" "${MINGW_PACKAGE_PREFIX}-gnutls" "${MINGW_PACKAGE_PREFIX}-nettle" "${MINGW_PACKAGE_PREFIX}-zlib")
+makedepends=("${MINGW_PACKAGE_PREFIX}-cmake" "${MINGW_PACKAGE_PREFIX}-gcc")
 options=('staticlibs' '!libtool')
-source=("http://www.nih.at/${_realname}/${_realname}-${pkgver}.tar.xz")
-md5sums=('44c99b67dca34707b5728e5f8434fe91')
+source=("https://www.nih.at/${_realname}/${_realname}-${pkgver}.tar.xz")
+sha256sums=('04ea35b6956c7b3453f1ed3f3fe40e3ddae1f43931089124579e8384e79ed372')
 
 prepare() {
-  cd "$srcdir/${_realname}-$pkgver"
-
-  autoreconf -fi
+  cd "${srcdir}/${_realname}-${pkgver}"
 }
 
 build() {
-  mkdir -p "${srcdir}/build-${CARCH}"
-  cd "${srcdir}/build-${CARCH}"
-  "${srcdir}"/${_realname}-${pkgver}/configure \
-    --prefix=${MINGW_PREFIX} \
-    --build=${MINGW_CHOST} \
-    --host=${MINGW_CHOST} \
-    --target=${MINGW_CHOST} \
-    --enable-shared \
-    --enable-static
+  # Shared Build
+  [[ -d ${srcdir}/build-${CARCH}-shared ]] && rm -rf ${srcdir}/build-${CARCH}-shared
+  mkdir -p ${srcdir}/build-${CARCH}-shared && cd ${srcdir}/build-${CARCH}-shared
+
+  cd "${srcdir}/build-${CARCH}-shared"
+  MSYS2_ARG_CONV_EXCL="-DCMAKE_INSTALL_PREFIX=" \
+  ${MINGW_PREFIX}/bin/cmake.exe \
+    -G"MSYS Makefiles" \
+    -DCMAKE_INSTALL_PREFIX=${MINGW_PREFIX} \
+    -DENABLE_GNUTLS=ON \
+    -DENABLE_OPENSSL=OFF \
+    ../${_realname}-${pkgver}
+
+  make
+  
+  # Static Build
+  [[ -d ${srcdir}/build-${CARCH}-static ]] && rm -rf ${srcdir}/build-${CARCH}-static
+  mkdir -p ${srcdir}/build-${CARCH}-static && cd ${srcdir}/build-${CARCH}-static
+
+  cd "${srcdir}/build-${CARCH}-static"
+  MSYS2_ARG_CONV_EXCL="-DCMAKE_INSTALL_PREFIX=" \
+  ${MINGW_PREFIX}/bin/cmake.exe \
+    -G"MSYS Makefiles" \
+    -DCMAKE_INSTALL_PREFIX=${MINGW_PREFIX} \
+    -DBUILD_SHARED_LIBS=OFF \
+    -DENABLE_GNUTLS=ON \
+    -DENABLE_OPENSSL=OFF \
+    ../${_realname}-${pkgver}
 
   make
 }
 
 package() {
-  cd "${srcdir}/build-${CARCH}"
-
+  # Shared Install
+  cd "${srcdir}/build-${CARCH}-shared"
+  make DESTDIR="${pkgdir}" install
+  
+  # Static Install
+  cd "${srcdir}/build-${CARCH}-static"
   make DESTDIR="${pkgdir}" install
 
-  # preserve old header path for compatibility
-  # ln -s ${MINGW_PREFIX}/lib/libzip/include/zipconf.h "${pkgdir}${MINGW_PREFIX}/include/zipconf.h"
-  install -Dm644 "${srcdir}"/${_realname}-${pkgver}/LICENSE "${pkgdir}/${MINGW_PREFIX}/share/licenses/${_realname}/LICENSE"
+  install -Dm644 "${srcdir}"/${_realname}-${pkgver}/LICENSE "${pkgdir}${MINGW_PREFIX}/share/licenses/${_realname}/LICENSE"
 }

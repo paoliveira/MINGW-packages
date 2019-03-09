@@ -1,32 +1,26 @@
 # Maintainer: AlexWMF <alexxwmf@gmail.com>
 
 _realname=gst-plugins-ugly
+pkgbase=mingw-w64-${_realname}
 pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
-pkgver=1.4.5
-pkgrel=1
+pkgver=1.14.4
+pkgrel=2
 pkgdesc="GStreamer Multimedia Framework Ugly Plugins (mingw-w64)"
 arch=('any')
-url="http://gstreamer.freedesktop.org/"
+url="https://gstreamer.freedesktop.org/"
 license=("LGPL")
-makedepends=("${MINGW_PACKAGE_PREFIX}-gcc"
-            "${MINGW_PACKAGE_PREFIX}-pkg-config"
-            "${MINGW_PACKAGE_PREFIX}-python2"
-            )
+makedepends=("${MINGW_PACKAGE_PREFIX}-gobject-introspection"
+             "${MINGW_PACKAGE_PREFIX}-gtk-doc")
 depends=("${MINGW_PACKAGE_PREFIX}-a52dec"
-        "${MINGW_PACKAGE_PREFIX}-gst-plugins-base"
-        "${MINGW_PACKAGE_PREFIX}-gstreamer"
-        "${MINGW_PACKAGE_PREFIX}-lame"
-        "${MINGW_PACKAGE_PREFIX}-libdvdread"
-        "${MINGW_PACKAGE_PREFIX}-libmad"
-        "${MINGW_PACKAGE_PREFIX}-libmpeg2"
-        "${MINGW_PACKAGE_PREFIX}-libcdio"
-        "${MINGW_PACKAGE_PREFIX}-opencore-amr"
-        "${MINGW_PACKAGE_PREFIX}-twolame"
-        "${MINGW_PACKAGE_PREFIX}-x264"
-        )
+         "${MINGW_PACKAGE_PREFIX}-gst-plugins-base"
+         "${MINGW_PACKAGE_PREFIX}-libcdio"
+         "${MINGW_PACKAGE_PREFIX}-libdvdread"
+         "${MINGW_PACKAGE_PREFIX}-libmpeg2"
+         "${MINGW_PACKAGE_PREFIX}-opencore-amr"
+         "${MINGW_PACKAGE_PREFIX}-x264")
 options=(!libtool strip staticlibs)
 source=(${url}/src/${_realname}/${_realname}-${pkgver}.tar.xz)
-md5sums=('6954beed7bb9a93e426dee543ff46393')
+sha256sums=('ac02d837f166c35ff6ce0738e281680d0b90052cfb1f0255dcf6aaca5f0f6d23')
 
 prepare() {
   cd ${srcdir}/${_realname}-${pkgver}
@@ -35,12 +29,15 @@ prepare() {
 }
 
 build() {
+  rm -rf "${srcdir}/build-${MINGW_CHOST}"
   mkdir -p "${srcdir}/build-${MINGW_CHOST}"
   cd "${srcdir}/build-${MINGW_CHOST}"
+
   ../${_realname}-${pkgver}/configure \
     --prefix=${MINGW_PREFIX} \
     --build=${MINGW_CHOST} \
     --host=${MINGW_CHOST} \
+    --with-package-origin=https://www.msys2.org \
     --disable-static \
     --enable-shared \
     --enable-silent-rules \
@@ -52,6 +49,7 @@ build() {
 package() {
   cd "${srcdir}/build-${MINGW_CHOST}"
   make -j1 DESTDIR="$pkgdir" install
+
   find "${pkgdir}${MINGW_PREFIX}" -name '*.def' -o -name '*.exp' | xargs -rtl1 rm
   rm -f ${pkgdir}${MINGW_PREFIX}/lib/gstreamer*/*.a
 }

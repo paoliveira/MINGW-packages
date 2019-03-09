@@ -1,7 +1,7 @@
-diff -urN a/setup.py b/setup.py
---- a/setup.py	2014-10-11 14:22:53.522658800 +0100
-+++ b/setup.py	2014-10-11 14:22:56.174810500 +0100
-@@ -386,7 +386,7 @@
+diff -Naur Python-3.7.0-orig/setup.py Python-3.7.0/setup.py
+--- Python-3.7.0-orig/setup.py	2018-07-12 10:22:13.756845600 +0300
++++ Python-3.7.0/setup.py	2018-07-12 10:22:14.037646100 +0300
+@@ -476,7 +476,7 @@
          # Debian/Ubuntu multiarch support.
          # https://wiki.ubuntu.com/MultiarchSpec
          cc = sysconfig.get_config_var('CC')
@@ -10,7 +10,7 @@ diff -urN a/setup.py b/setup.py
          if not os.path.exists(self.build_temp):
              os.makedirs(self.build_temp)
          ret = os.system(
-@@ -411,7 +411,7 @@
+@@ -501,7 +501,7 @@
          opt = ''
          if cross_compiling:
              opt = '-t' + sysconfig.get_config_var('HOST_GNU_TYPE')
@@ -19,7 +19,7 @@ diff -urN a/setup.py b/setup.py
          if not os.path.exists(self.build_temp):
              os.makedirs(self.build_temp)
          ret = os.system(
-@@ -430,7 +430,7 @@
+@@ -520,7 +520,7 @@
  
      def add_gcc_paths(self):
          gcc = sysconfig.get_config_var('CC')
@@ -28,7 +28,7 @@ diff -urN a/setup.py b/setup.py
          if not os.path.exists(self.build_temp):
              os.makedirs(self.build_temp)
          ret = os.system('%s -E -v - </dev/null 2>%s 1>/dev/null' % (gcc, tmpfile))
-@@ -694,7 +694,7 @@
+@@ -811,7 +811,7 @@
          readline_termcap_library = ""
          curses_library = ""
          # Cannot use os.popen here in py3k.
@@ -37,18 +37,9 @@ diff -urN a/setup.py b/setup.py
          if not os.path.exists(self.build_temp):
              os.makedirs(self.build_temp)
          # Determine if readline is already linked against curses or tinfo.
-@@ -839,7 +839,7 @@
-         opensslv_h = find_file('openssl/opensslv.h', [],
-                 inc_dirs + search_for_ssl_incs_in)
-         if opensslv_h:
--            name = os.path.join(opensslv_h[0], 'openssl/opensslv.h')
-+            name = os.path.join(opensslv_h[0], 'openssl/opensslv.h').replace('\\','/')
-             if host_platform == 'darwin' and is_macosx_sdk_path(name):
-                 name = os.path.join(macosx_sdk_root(), name[1:])
-             try:
-@@ -1714,16 +1714,16 @@
+@@ -1801,16 +1801,16 @@
          cflags = sysconfig.get_config_vars('CFLAGS')[0]
-         archs = re.findall('-arch\s+(\w+)', cflags)
+         archs = re.findall(r'-arch\s+(\w+)', cflags)
  
 -        tmpfile = os.path.join(self.build_temp, 'tk.arch')
 +        tmpfile = os.path.join(self.build_temp, 'tk.arch').replace('\\','/')

@@ -1,0 +1,44 @@
+# Maintainer: David SEGUELA <david.seguela@delair-tech.com>
+
+_realname=zbar
+pkgbase="mingw-w64-${_realname}"
+pkgname="${MINGW_PACKAGE_PREFIX}-${_realname}"
+pkgver=0.20
+pkgrel=1
+pkgdesc="Application and library for reading bar codes from various sources (mingw-w64)"
+arch=('any')
+url="https://github.com/procxx/zbar"
+license=('LGPL')
+depends=("${MINGW_PACKAGE_PREFIX}-imagemagick")
+source=(${_realname}-${pkgver}.tar.gz::https://github.com/procxx/zbar/archive/${pkgver}.tar.gz
+        "windowsandimagemagick.patch")
+sha256sums=('3665a0e17e20bcc60d428818dae5945c0a2e96500168c067362a21baafa20006'
+            'f01a34d120b0a8e1d9406982a2115460c1bfaa520234bb9736bf538315c73036')
+options=('strip' 'staticlibs')
+
+prepare() {
+  cd "${srcdir}/${_realname}-${pkgver}"
+  patch -p1 -i ${srcdir}/windowsandimagemagick.patch
+  autoreconf -fiv
+}
+
+build() {
+  [[ -d ${srcdir}/build-${CARCH} ]] && rm -rf ${srcdir}/build-${CARCH}
+  cp -rf ${srcdir}/${_realname}-${pkgver} ${srcdir}/build-${CARCH}
+  cd ${srcdir}/build-${CARCH}
+  ./configure \
+      --prefix=${MINGW_PREFIX} \
+      --build=${MINGW_CHOST} \
+      --host=${MINGW_CHOST} \
+      --target=${MINGW_CHOST} \
+      --without-qt \
+      --without-gtk \
+      --without-python \
+      --disable-video
+  make
+}
+
+package() {
+  cd ${srcdir}/"build-"${CARCH}/
+  make install DESTDIR="${pkgdir}"
+}
